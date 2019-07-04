@@ -1,0 +1,113 @@
+#+BEGIN_COMMENT
+/* vim: set ts=2 tw=72: */
+#+END_COMMENT
+
+#+TITLE: Keen4: A Language for Correctness in Small Spaces
+#+OPTIONS: toc:2
+
+Keen4 is a toy language targeted at software for microcontrollers being
+built to explore concepts relating to the mechanics of writing a
+compile, while simultaneously being a vehicle and excuse to learn more
+about type and category theory, and also just being an excuse to
+exercise math muscles that yearn to do work.
+
+* Precepts
+
+  1) Programs should be an expression of a solution, algorithm, or goal,
+     and not a bit-banging explanation of how to acheive it.
+  2) Programs should be assumed to run on memory and power constrained
+     devices.
+
+* Features
+
+  - Algebreic data types, _i.e._ record and sum and ~match~
+  - Logic/Constraint programming
+  - Dependent types
+  - Linear types
+  - Trait-based composition
+
+  Given the limitations of the size of the output and processing power,
+  the compiler will be responsible for applying as much knowlege and
+  simplifications as possible at compile time -- defining how that will
+  work will by far be the most difficult part of this project.  I'm
+  expecting a good portion of the language specification to be the
+  mathemetical reasoning that can be applied to the program to simplify
+  the outputed machine code.
+
+* Limitations
+
+  - Static, compile-time memory managment
+  - Recursion must be provably finite and happen via tail-calls
+  - Maximum stack depth checked at compile time. (May help be alleviated
+    by cross-function register allocation or heap allocation for
+    functions only appearing once in the call tree.)
+
+* Built-in Types
+  - byte :: A single byte. May not have arithmetic done to it.
+  - wsint8 :: 8-bit signed integer with wrap-around arithmetic
+  - wuint8 :: 8-bit unsigned integer with wrap-around arithmetic
+  - ssint8 :: 8-bit signed integer with saturated math
+  - suint8 :: 8-bit unsigned integer with saturated math
+  - esint8 :: 8-bit signed integer with errors on overflow
+  - euint8 :: 8-bit unsigned integer with errors on overflow
+  - LessThan<t : int>{n} :: The value must be strictly less than n and
+    will behave like the the base t (wrap-around, error, or saturate)
+  - Empty :: A type representing the absense of a value
+
+  16- and 32-bit integers are available depending on the target
+    processor.
+* Algebreic Data Types
+** Records
+** Sums
+*** Predefined Sums
+  - Optional<T> :: An Optional/Maybe type of `T` or `Empty`
+  - Err :: Represents an error
+  - Result<T, E : Err> :: Represents a result or a possible error. Sum
+    of `T` and `E` where `E` is a subtype of `Err`
+* Logic Programming
+** Facts
+** Rules
+* Dependent Types
+** Arrays/Strings
+   All arrays and strings must be statically allocated at compile time.
+   As such, their length must be know and can be incorporated into the
+   type.
+
+   #+BEGIN_SRC
+     Array<uint8> t = [1,2,3,4]
+   #+END_SRC
+
+   is equivilent to
+
+   #+BEGIN_SRC
+     Array<uint8>{4} t = [1,2,3,4]
+   #+END_SRC
+
+   This allows us to do some checks ahead of time. The following,
+
+   #+BEGIN_SRC
+     t[4]
+   #+END_SRC
+
+   will result in a compile time error. This,
+
+   #+BEGIN_SRC
+     int8 i = 4
+     t[i]
+   #+END_SRC
+
+   will also error. To  not have an error, we need to use `LessThan`,
+   such as
+
+   #+BEGIN_SRC
+     LessThan<int8>{t.length} i = 3
+     t[i]
+   #+END_SRC
+
+** Recursion
+   We can also use the dependent type to prevent infinite recursion.
+* Generics
+** Invarient Size
+** Dependent Size
+* Linear Types
+

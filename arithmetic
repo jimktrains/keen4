@@ -1,0 +1,40 @@
+* Arithmetic Types
+  - wsint8 :: 8-bit signed integer with wrap-around arithmetic
+  - wuint8 :: 8-bit unsigned integer with wrap-around arithmetic
+  - ssint8 :: 8-bit signed integer with saturated math
+  - suint8 :: 8-bit unsigned integer with saturated math
+  - esint8 :: 8-bit signed integer with errors on overflow
+  - euint8 :: 8-bit unsigned integer with errors on overflow
+
+wsint8 a <- 127
+wsint8 b <- 1
+wsint8 c <- a + b # c = -128
+
+wuint8 a <- 255
+wuint8 b <- 1
+wuint8 c <- a + b # c = 0
+
+
+ssint8 a <- 127
+ssint8 b <- 1
+ssint8 c <- a + b # c = 127
+
+suint8 a <- 255
+suint8 b <- 1
+suint8 c <- a + b # c = 255
+
+esint8 a <- 127
+esint8 b <- 1
+esint8 c <- match a + b:
+  Overflow => pass
+  Underflow => pass
+  OK(c) => c
+
+euint8 a <- 255
+euint8 b <- 1
+esint8 c <- match a + b:
+  Overflow => pass
+  Underflow => pass
+  OK(c) => c
+
+
