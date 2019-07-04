@@ -1,0 +1,26 @@
+func fold(n, b):
+  # Invalid
+  # B cannot be recursivly called in a manner which cannot be (naïvely) TCO-ed
+  # If you need a stack, pass a stack in.
+  func B(c, d):
+    # match will create slices over an array.  @f denotes "the rest" of the
+    # array. There may only be a single @ in the match.
+    match d:
+      [e, @f] :: n(c, B(e, f))
+      [] :: c
+
+  # Since arrays and slices are dependently typed, the recursion is
+  # forced to have a provable base-case. e.g. d has a dependent parameter
+  # of N and all recursive calls have a value of N-1.
+  func C(c, d):
+    match d:
+      [e, @f] :: C(n(c, e), f)
+      [] :: c
+
+  C(0, b)
+
+a <- [1,2,3,4,5]
+fold(+, a) #=> 15
+
+adder <- fold(+)
+adder(a) #=> 15

@@ -1,0 +1,185 @@
+###########################################
+# System Definitions
+###########################################
+
+class InputPin<PinNum>:
+  Low
+  High
+
+cast InputPin<PinNum> as boolean:
+  return match self:
+    Low: False
+    High: True
+
+enum OutputPin<PinNum>:
+  Low
+  High
+
+enum BiStatePin<PinNum>:
+  InputPin<PinNum>
+  OutputPin<PinNum>
+
+enum TriStatePin<PinNum>:
+  InputPin<PinNum>
+  OutputPin<PinNum>
+  HighZPin<PinNum>
+
+class UnbouncedPin<PinNum, BounceCycles := 200>(InputPin<PinNum>):
+  private boolean value
+  
+  cast boolean:
+    return value
+
+  def read():
+    # Read the pin, check the value against the previous and the timer
+    pass
+
+
+###########################################
+# Global Definitions
+###########################################
+
+enum OccupancyDetector<WestDetector:InputPin, EastDetector:InputPin>:
+  Empty
+  Eastbound
+  Westbound
+  Unknown
+
+def OccupancyDetector<WestDetector, EastDetector>::read():
+  if not WestDetector & not EastDetector:
+    self <- Empty
+  if self === Empty:
+    if WestDetector:
+      self <- Eastbound
+    elif Eastbound:
+      self <- Westbound
+
+enum SignalAspect<Pin1:OutputPin, Pin2:OutputPin>:
+  Clear
+  Approach
+  Stop
+  Unknown
+
+def SignalAspect<Pin1, Pin2>::write():
+  if self === Clear:
+    Pin1 <- High
+    Pin2 <- High
+  elif self == Approach:
+    Pin1 <- High
+    Pin2 <- Low
+  else:
+    # Hardware will set to Stop if Pin1 is low
+    Pin1 <- Low
+    Pin2 <- Low
+
+def SignalAspect<Pin1, Pin2>::<-(A):
+  @parent(A)
+  self.write()
+
+
+enum Turnout<StraightDetector:InputPin, DivertedDetector:InputPin>:
+  Straight
+  Diverted
+  Unknown
+
+def OccupancyDetector<StraightDetector, DivertedDetector>::read():
+  if StraightDetector && DivertedDetector:
+    self <- Unknown
+  elif StraightDetector:
+    self <- Straight
+  elif DivertedDetector:
+    self <- Diverted
+  else:
+    self <- Unknown
+
+statements:
+  connected(A:OccupancyDetector, B:OccupancyDetector) <=> connected(B, A)
+  disconnected(A:OccupancyDetector)
+  signal_protects(S:SignalAspect, A:OccupancyDetector)
+
+predicates:
+  occupied(A:OccupancyDetector) := A in (Eastbound, Westbound, Unknown)
+
+  diverted(S:Turnout) := S === Diverted
+  diverted(A:Turnout, B:Turnout) := diverted(A) & diverted(B)
+  
+  straight(S:Turnout) := S === Straight
+  straight(A:Turnout, B:Turnout) := straight(A) & straight(B)
+
+  mismatched(A:Turnout, B:Turnout) := (diverted(A) & straight(B)) | (straight(A) & diverted(B))
+
+constraints:
+  occupied(T) & signal_protects(S, T) -> S === Stop
+  disconnected(T) & signal_protects(S, T) -> S === Stop
+
+
+###########################################
+# Block Specific
+###########################################
+
+# G = Signal location
+# Diagram shows both switches straight
+#
+# SECTION  A     B
+#      G          G
+# T1 W -------+---- E
+#          S1
+# T2 W ------+----- E
+#      G          G
+
+
+# readonly means that this cannot be set except for a 0-arity method
+# on the object
+readonly OccupancyDetector<UnbouncedPin<1>, UnbouncedPin<2>> T1A
+readonly OccupancyDetector<UnbouncedPin<3>, UnbouncedPin<4>> T1B
+readonly OccupancyDetector<UnbouncedPin<5>, UnbouncedPin<6>> T2A
+readonly OccupancyDetector<UnbouncedPin<7>, UnbouncedPin<8>> T2B
+readonly OccupancyDetector<UnbouncedPin<9>, UnbouncedPin<10>> S1A
+
+readonly Turnout<UnbouncedPin<11>, UnbouncedPin<12>> T1S1
+readonly Turnout<UnbouncedPin<13>, UnbouncedPin<14>> T2S1
+
+SignalAspect<OutputPin<15>, OutputPin<16>> T1GW
+SignalAspect<OutputPin<17>, OutputPin<18>> T1GE
+SignalAspect<OutputPin<19>, OutputPin<20>> T2GW
+SignalAspect<OutputPin<21>, OutputPin<22>> T2GE
+
+facts:
+  straight(T1S1) & connected(T1A, T1B)
+  straight(T2S1) & connected(T2A, T2B)
+
+  diverted(T1S1) & disconnected(T1A)
+  diverted(T2S1) & disconnected(T1B)
+
+  diverted(T1S1, T2S1) & connected(T2A, S1A) & connected(T1B, S1A)
+  mismatched(T1S1, T2S1) & disconnected(T1B) & disconnected(T2A)
+
+  signal_protects(T1GW, T1A)
+  connected(T1A, T1B) & signal_protects(T1GE, T1A)
+  signal_protects(T1GE, T1B)
+  connected(T1A, T1B) & signal_protects(T1GW, T1B)
+
+  signal_protects(T2GW, T2A)
+  connected(T2A, T2B) & signal_protects(T2GE, T2A)
+  signal_protects(T2GE, T2B)
+  connected(T2A, T2B) & signal_protects(T2GW, T2B)
+
+  connected(T2A, S1A) & signal_protects(T2GW, S1A)
+  connected(T1B, S1A) & signal_protects(T1GE, S1A)
+
+setup:
+  T1GW <- Stop
+  T1GE <- Stop
+  T2GW <- Stop
+  T2GE <- Stop
+
+main:
+  T1A.read()
+  T1B.read()
+  T2A.read()
+  T2B.read()
+  S1A.read()
+
+  T1S1.read()
+  T2S1.read()
+
