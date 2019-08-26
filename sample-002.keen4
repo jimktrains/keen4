@@ -1,0 +1,71 @@
+enum Signal:
+  Clear
+  Approach
+  Stop
+  Unknown
+
+enum DirectionDetector:
+  Empty
+  Eastbound
+  Westbound
+  Unknown
+
+enum OccupancyDetector:
+  Empty
+  Occupied
+
+cast DirectionDetector(d) as OccupancyDetector:
+  match d:
+    Empty: Empty
+    _: Occupied
+
+# Statements are what will later be used to define facts.
+# the spaceship operator (<=>) can be used to define a reflexive
+# relationship.
+statements:
+  connected(A, B) <=> connected(B, A)
+  signal_protects(S, A)
+
+# These are checked at compile-time against the reäctive definitions. As
+# the set values can not be set elsewhere, verification there is sufficient.
+# It also ensures that any state being watch is capable of being attained.
+#
+# Since the reäctive section must be exustive, it should not be possible
+# to set a state with the free variables that is not matched against.
+constraints:
+  Occupied(A) & signal_protects(S, A) & !Stop(S)
+
+# For the moment only the =, <, <=, >=, >, &, |, and in operators are supported
+#   in the watch statements. Predicates should be exhustive.
+# Only simple assignment is permitted in the body.
+# Assigned variables may not be assigned to outside of the reäctive section.
+reäctive:
+  Occupied(A) & signal_protects(S, A):
+    S <- Stop
+  connected(A, B) & Empty(A) & Occupied(B) & signal_protects(S, A):
+    S <- Approach
+  connected(A, B) & Empty(A) & Empty(B) & signal_protects(S, A):
+    S <- Clear
+
+# Track Sections
+#    A      B      C
+# ------|------|------
+# S      S      S
+# Signal Locations
+
+OccupancyDetector A
+OccupancyDetector B
+OccupancyDetector C
+Signal SA
+Signal SB
+Signal SC
+
+# Once we declare these facts, the signals may not be assigned to elsewhere
+# in the code
+facts:
+  connected(A, B)
+  connected(B, C)
+  signal_protects(SA, A)
+  signal_protects(SB, B)
+  signal_protects(SC, C)
+
