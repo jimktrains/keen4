@@ -1,4 +1,6 @@
 %start ProgramRoot
+%left 'PIPE' 'AMPERSAND' 'PLUS'
+%nonassoc 'EXCLAMATION'
 %%
 ProgramRoot -> Result<Program, ()>:
     GlobalsSection ReactiveSection { 
@@ -62,28 +64,16 @@ Identifier -> Identifier:
   }
   ;
 
-LogicalExpression -> LogicalExpression:
-      'EXCLAMATION' LogicalExpression { 
-      LogicalExpression::LogicalUnaryExpression(LogicalUnaryExpression::Not(Box::new($2))) 
-    }
-    | Identifier 'LPAREN' Identifier 'RPAREN' { 
-      LogicalExpression::LogicalUnaryExpression(LogicalUnaryExpression::Predicate($1, $3))
-    }
-    | ParenLogicalExpression 'PIPE' ParenLogicalExpression { 
-      LogicalExpression::LogicalBinaryExpression(LogicalBinaryExpression::Or($1, $3))
-    }
-    | ParenLogicalExpression 'AMPERSAND' ParenLogicalExpression { 
-      LogicalExpression::LogicalBinaryExpression(LogicalBinaryExpression::And($1, $3))
-    }
-    | ParenLogicalExpression 'PLUS' ParenLogicalExpression { 
-      LogicalExpression::LogicalBinaryExpression(LogicalBinaryExpression::Xor($1, $3))
-    }
-    | ParenLogicalExpression { LogicalExpression::LogicalExpression($1) }
+LogicalExpression -> Box<LogicalExpression>:
+    Identifier { Box::new(LogicalExpression::Identifier($1)) }
+    | 'EXCLAMATION' LogicalExpression { Box::new(LogicalExpression::LogicalUnaryExpression(LogicalUnaryExpression::Not($2))) }
+    | Identifier 'LPAREN' Identifier 'RPAREN' { Box::new(LogicalExpression::LogicalUnaryExpression(LogicalUnaryExpression::Predicate($1, $3))) }
+    | LogicalExpression 'PIPE' LogicalExpression { Box::new(LogicalExpression::LogicalBinaryExpression(LogicalBinaryExpression::Or($1, $3))) }
+    | LogicalExpression 'AMPERSAND' LogicalExpression { Box::new(LogicalExpression::LogicalBinaryExpression(LogicalBinaryExpression::And($1, $3))) }
+    | LogicalExpression 'PLUS' LogicalExpression { Box::new(LogicalExpression::LogicalBinaryExpression(LogicalBinaryExpression::Xor($1, $3))) }
+    | 'LPAREN' LogicalExpression 'RPAREN' { Box::new(LogicalExpression::LogicalExpression($2)) }
     ;
 
-ParenLogicalExpression -> Box<LogicalExpression>:
-    'LPAREN' LogicalExpression 'RPAREN' { Box::new($2) }
-    ;
 %%
 
 
@@ -131,7 +121,7 @@ type Assignments = Vec<Assignment>;
 
 #[derive(Debug)]
 pub struct Reactive {
-  expr: LogicalExpression,
+  expr: Box<LogicalExpression>,
   assignments: Assignments,
 }
 
