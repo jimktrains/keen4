@@ -1,0 +1,18 @@
+[package]
+name = "calc"
+version = "0.0.1"
+authors = ["<authors>"]
+
+[[bin]]
+doc = false
+name = "calc"
+
+[build-dependencies]
+cfgrammar = "0.3"
+lrlex = "0.3"
+lrpar = "0.3"
+
+[dependencies]
+cfgrammar = "0.3"
+lrlex = "0.3"
+lrpar = "0.3"
