@@ -1,1 +1,1 @@
-globals { X y } reactive { !!T(t) { r <- e } }
+globals { X y } reactive { (!!T(t)) & Thingy(Track1) { r <- e } }

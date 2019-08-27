@@ -63,14 +63,29 @@ Identifier -> Identifier:
   ;
 
 LogicalExpression -> LogicalExpression:
-      "EXCLAMATION" LogicalExpression { 
+      'EXCLAMATION' LogicalExpression { 
       LogicalExpression::LogicalUnaryExpression(LogicalUnaryExpression::Not(Box::new($2))) 
     }
     | Identifier 'LPAREN' Identifier 'RPAREN' { 
       LogicalExpression::LogicalUnaryExpression(LogicalUnaryExpression::Predicate($1, $3))
     }
+    | ParenLogicalExpression 'PIPE' ParenLogicalExpression { 
+      LogicalExpression::LogicalBinaryExpression(LogicalBinaryExpression::Or($1, $3))
+    }
+    | ParenLogicalExpression 'AMPERSAND' ParenLogicalExpression { 
+      LogicalExpression::LogicalBinaryExpression(LogicalBinaryExpression::And($1, $3))
+    }
+    | ParenLogicalExpression 'PLUS' ParenLogicalExpression { 
+      LogicalExpression::LogicalBinaryExpression(LogicalBinaryExpression::Xor($1, $3))
+    }
+    | ParenLogicalExpression { LogicalExpression::LogicalExpression($1) }
+    ;
+
+ParenLogicalExpression -> Box<LogicalExpression>:
+    'LPAREN' LogicalExpression 'RPAREN' { Box::new($2) }
     ;
 %%
+
 
 #[derive(Debug)]
 pub struct Variable {
@@ -101,7 +116,6 @@ pub enum LogicalBinaryExpression {
 #[derive(Debug)]
 pub enum LogicalExpression {
   Identifier(Identifier),
-  Variable(Variable),
   LogicalExpression(Box<LogicalExpression>),
   LogicalUnaryExpression(LogicalUnaryExpression),
   LogicalBinaryExpression(LogicalBinaryExpression),
