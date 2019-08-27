@@ -9,4 +9,4 @@ globals "GLOBALS"
 \(  "LPAREN"
 \)  "RPAREN"
 !   "EXCLAMATION"
-[\t ]+ ;
+\s ;

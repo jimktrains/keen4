@@ -4,7 +4,8 @@ extern crate lrlex;
 extern crate lrpar;
 extern crate cfgrammar;
 
-use std::io::{self, BufRead, Write};
+use std::io;
+use std::io::Read;
 use lrlex::lrlex_mod;
 use lrpar::lrpar_mod;
 
@@ -13,31 +14,31 @@ lrlex_mod!(calc_l);
 // Using `lrpar_mod!` brings the lexer for `calc.y` into scope.
 lrpar_mod!(calc_y);
 
-fn main() {
+use calc_y::Program;
+
+fn read_and_parse() -> Option<Program> {
     // We need to get a `LexerDef` for the `calc` language in order that we can lex input.
     let lexerdef = calc_l::lexerdef();
+    let mut program_text = String::new();
     let stdin = io::stdin();
-    loop {
-        print!(">>> ");
-        io::stdout().flush().ok();
-        match stdin.lock().lines().next() {
-            Some(Ok(ref l)) => {
-                if l.trim().is_empty() {
-                    continue;
-                }
-                // Now we create a lexer with the `lexer` method with which we can lex an input.
-                let mut lexer = lexerdef.lexer(l);
-                // Pass the lexer to the parser and lex and parse the input.
-                let (res, errs) = calc_y::parse(&mut lexer);
-                for e in errs {
-                    println!("{}", e.pp(&lexer, &calc_y::token_epp));
-                }
-                match res {
-                    Some(r) => println!("Result: {:?}", r),
-                    _ => eprintln!("Unable to evaluate expression.")
-                }
-            }
-            _ => break
+    let mut handle = stdin.lock();
+    handle.read_to_string(&mut program_text).expect("Unable to read stdin");
+    let mut lexer = lexerdef.lexer(&program_text);
+    let (res, errs) = calc_y::parse(&mut lexer);
+
+    if errs.len() != 0 {
+        println!("Errors");
+        for e in errs {
+            println!("{}", e.pp(&lexer, &calc_y::token_epp));
         }
     }
+    let res = res.expect("Unable to evaluate expression.");
+    let prog = res.expect("Unable to do something.");
+    Some(prog)
+}
+
+fn main() -> Result<(), ()> {
+    let res = read_and_parse().unwrap();
+    println!("Result: {:?}", res);
+    Ok(())
 }
