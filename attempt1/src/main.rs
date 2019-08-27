@@ -16,7 +16,7 @@ lrpar_mod!(calc_y);
 
 use calc_y::Program;
 
-fn read_and_parse() -> Option<Program> {
+fn read_and_parse() -> Program {
     // We need to get a `LexerDef` for the `calc` language in order that we can lex input.
     let lexerdef = calc_l::lexerdef();
     let mut program_text = String::new();
@@ -33,12 +33,12 @@ fn read_and_parse() -> Option<Program> {
         }
     }
     let res = res.expect("Unable to evaluate expression.");
-    let prog = res.expect("Unable to do something.");
-    Some(prog)
+    let prog = res.expect("No program evaluated");
+    prog
 }
 
 fn main() -> Result<(), ()> {
-    let res = read_and_parse().unwrap();
+    let res = read_and_parse();
     println!("Result: {:?}", res);
     Ok(())
 }

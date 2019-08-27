@@ -10,11 +10,11 @@ ProgramRoot -> Result<Program, ()>:
     }
     ;
 
-VDeclaration -> Variable:
+VDeclaration -> Result<Variable, ()>:
     Identifier Identifier { 
-      let vartype = $1;
-      let name = $2;
-      Variable {name, vartype}
+      let vartype = $1?;
+      let name = $2?;
+      Ok(Variable {name, vartype})
     }
     ;
 
@@ -23,8 +23,8 @@ GlobalsSection -> Result<Globals, ()>:
  ;
 
 ListOfVDecs -> Result<Globals, ()>:
-      VDeclaration { Ok(vec![$1]) }
-    | ListOfVDecs VDeclaration { flatten($1, Ok($2)) }
+      VDeclaration { Ok(vec![$1?]) }
+    | ListOfVDecs VDeclaration { flatten($1, $2) }
     ;
 
 ReactiveSection -> Result<Reactives, ()>:
@@ -32,62 +32,61 @@ ReactiveSection -> Result<Reactives, ()>:
     ; 
 
 ListOfRDecs -> Result<Reactives, ()>:
-      RDeclaration { Ok(vec![$1]) }
-    | ListOfRDecs RDeclaration { flatten($1, Ok($2)) }
+      RDeclaration { Ok(vec![$1?]) }
+    | ListOfRDecs RDeclaration { flatten($1, $2) }
     ;
 
-RDeclaration -> Reactive:
+RDeclaration -> Result<Reactive, ()>:
     LogicalExpression 'LBRACK' ListOfAssignments 'RBRACK' {
-      let expr = $1;
-      let assignments = $3.unwrap();
-      Reactive { expr, assignments }
+      let expr = $1?;
+      let assignments = $3?;
+      Ok(Reactive { expr, assignments })
     }
     ;
 
 ListOfAssignments -> Result<Assignments, ()>:
-      Assignment { Ok(vec![$1]) }
-    | ListOfAssignments Assignment { flatten($1, Ok($2)) }
+      Assignment { Ok(vec![$1?]) }
+    | ListOfAssignments Assignment { flatten($1, $2) }
     ;
 
-Assignment -> Assignment:
+Assignment -> Result<Assignment, ()>:
   Identifier 'ASSIGN' Identifier {
-    let variable = $1;
-    let value = $3;
-    Assignment { variable, value }
+    let variable = $1?;
+    let value = $3?;
+    Ok(Assignment { variable, value })
   }
   ;
 
-Identifier -> Identifier:
+Identifier -> Result<Identifier, ()>:
   'IDENT' {
-    let name = $1.unwrap();
-    Identifier { name }
+    let name = $lexer.lexeme_str(&$1.map_err(|_| ())?).to_string();
+    Ok(Identifier { name })
   }
   ;
 
-LogicalExpression -> Box<LogicalExpression>:
-    Identifier { Box::new(LogicalExpression::Identifier($1)) }
-    | 'EXCLAMATION' LogicalExpression { Box::new(LogicalExpression::LogicalUnaryExpression(LogicalUnaryExpression::Not($2))) }
-    | Identifier 'LPAREN' Identifier 'RPAREN' { Box::new(LogicalExpression::LogicalUnaryExpression(LogicalUnaryExpression::Predicate($1, $3))) }
-    | LogicalExpression 'PIPE' LogicalExpression { Box::new(LogicalExpression::LogicalBinaryExpression(LogicalBinaryExpression::Or($1, $3))) }
-    | LogicalExpression 'AMPERSAND' LogicalExpression { Box::new(LogicalExpression::LogicalBinaryExpression(LogicalBinaryExpression::And($1, $3))) }
-    | LogicalExpression 'PLUS' LogicalExpression { Box::new(LogicalExpression::LogicalBinaryExpression(LogicalBinaryExpression::Xor($1, $3))) }
-    | 'LPAREN' LogicalExpression 'RPAREN' { Box::new(LogicalExpression::LogicalExpression($2)) }
+LogicalExpression -> Result<Box<LogicalExpression>, ()>:
+    Identifier { Ok(Box::new(LogicalExpression::Identifier($1?))) }
+    | 'EXCLAMATION' LogicalExpression { Ok(Box::new(LogicalExpression::LogicalUnaryExpression(LogicalUnaryExpression::Not($2?)))) }
+    | Identifier 'LPAREN' Identifier 'RPAREN' { Ok(Box::new(LogicalExpression::LogicalUnaryExpression(LogicalUnaryExpression::Predicate($1?, $3?)))) }
+    | LogicalExpression 'PIPE' LogicalExpression { Ok(Box::new(LogicalExpression::LogicalBinaryExpression(LogicalBinaryExpression::Or($1?, $3?)))) }
+    | LogicalExpression 'AMPERSAND' LogicalExpression { Ok(Box::new(LogicalExpression::LogicalBinaryExpression(LogicalBinaryExpression::And($1?, $3?)))) }
+    | LogicalExpression 'PLUS' LogicalExpression { Ok(Box::new(LogicalExpression::LogicalBinaryExpression(LogicalBinaryExpression::Xor($1?, $3?)))) }
+    | 'LPAREN' LogicalExpression 'RPAREN' { Ok(Box::new(LogicalExpression::LogicalExpression($2?))) }
     ;
 
 %%
 
-
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Variable {
   name: Identifier,
   vartype: Identifier,
 }
 
-type StorageT = u32;
-
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Identifier {
-  name: Lexeme<StorageT>,
+  // TODO: make this &str so that we're not copying the memory.
+  // I do not know how to deal with the lifetimes :(
+  name: String,
 }
 
 #[derive(Debug)]
