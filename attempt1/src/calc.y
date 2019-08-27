@@ -2,8 +2,8 @@
 %%
 ProgramRoot -> Result<Program, ()>:
     GlobalsSection ReactiveSection { 
-      let globals = Box::new($1?);
-      let reactives = Box::new($2?);
+      let globals = $1?;
+      let reactives = $2?;
       Ok(Program {globals, reactives})
     }
     ;
@@ -21,8 +21,8 @@ GlobalsSection -> Result<Globals, ()>:
  ;
 
 ListOfVDecs -> Result<Globals, ()>:
-      VDeclaration { Ok(vec![Box::new($1)]) }
-    | ListOfVDecs VDeclaration { flatten($1, Ok(Box::new($2))) }
+      VDeclaration { Ok(vec![$1]) }
+    | ListOfVDecs VDeclaration { flatten($1, Ok($2)) }
     ;
 
 ReactiveSection -> Result<Reactives, ()>:
@@ -30,8 +30,8 @@ ReactiveSection -> Result<Reactives, ()>:
     ; 
 
 ListOfRDecs -> Result<Reactives, ()>:
-      RDeclaration { Ok(vec![Box::new($1)]) }
-    | ListOfRDecs RDeclaration { flatten($1, Ok(Box::new($2))) }
+      RDeclaration { Ok(vec![$1]) }
+    | ListOfRDecs RDeclaration { flatten($1, Ok($2)) }
     ;
 
 RDeclaration -> Reactive:
@@ -43,8 +43,8 @@ RDeclaration -> Reactive:
     ;
 
 ListOfAssignments -> Result<Assignments, ()>:
-      Assignment { Ok(vec![Box::new($1)]) }
-    | ListOfAssignments Assignment { flatten($1, Ok(Box::new($2))) }
+      Assignment { Ok(vec![$1]) }
+    | ListOfAssignments Assignment { flatten($1, Ok($2)) }
     ;
 
 Assignment -> Assignment:
@@ -55,27 +55,27 @@ Assignment -> Assignment:
   }
   ;
 
-Identifier -> Box<Identifier>:
+Identifier -> Identifier:
   'IDENT' {
     let name = $1.unwrap();
-    Box::new(Identifier { name })
+    Identifier { name }
   }
   ;
 
 LogicalExpression -> LogicalExpression:
       "EXCLAMATION" LogicalExpression { 
-      LogicalExpression::LogicalUnaryExpression(Box::new(LogicalUnaryExpression::Not(Box::new($2)))) 
+      LogicalExpression::LogicalUnaryExpression(LogicalUnaryExpression::Not(Box::new($2))) 
     }
     | Identifier 'LPAREN' Identifier 'RPAREN' { 
-      LogicalExpression::LogicalUnaryExpression(Box::new(LogicalUnaryExpression::Predicate($1, $3)))
+      LogicalExpression::LogicalUnaryExpression(LogicalUnaryExpression::Predicate($1, $3))
     }
     ;
 %%
 
 #[derive(Debug)]
 pub struct Variable {
-  name: Box<Identifier>,
-  vartype: Box<Identifier>,
+  name: Identifier,
+  vartype: Identifier,
 }
 
 type StorageT = u32;
@@ -88,7 +88,7 @@ pub struct Identifier {
 #[derive(Debug)]
 pub enum LogicalUnaryExpression {
   Not(Box<LogicalExpression>),
-  Predicate(Box<Identifier>, Box<Identifier>),
+  Predicate(Identifier, Identifier),
 }
 
 #[derive(Debug)]
@@ -100,20 +100,20 @@ pub enum LogicalBinaryExpression {
 
 #[derive(Debug)]
 pub enum LogicalExpression {
-  Identifier(Box<Identifier>),
-  Variable(Box<Variable>),
+  Identifier(Identifier),
+  Variable(Variable),
   LogicalExpression(Box<LogicalExpression>),
-  LogicalUnaryExpression(Box<LogicalUnaryExpression>),
-  LogicalBinaryExpression(Box<LogicalBinaryExpression>),
+  LogicalUnaryExpression(LogicalUnaryExpression),
+  LogicalBinaryExpression(LogicalBinaryExpression),
 }
 
 #[derive(Debug)]
 pub struct Assignment {
-  variable: Box<Identifier>,
-  value: Box<Identifier>,
+  variable: Identifier,
+  value: Identifier,
 }
 
-type Assignments = Vec<Box<Assignment>>;
+type Assignments = Vec<Assignment>;
 
 #[derive(Debug)]
 pub struct Reactive {
@@ -121,13 +121,13 @@ pub struct Reactive {
   assignments: Assignments,
 }
 
-type Globals = Vec<Box<Variable>>;
-type Reactives = Vec<Box<Reactive>>;
+type Globals = Vec<Variable>;
+type Reactives = Vec<Reactive>;
 
 #[derive(Debug)]
 pub struct Program {
-  globals: Box<Globals>,
-  reactives: Box<Reactives>,
+  globals: Globals,
+  reactives: Reactives,
 }
 
 // Taken from https://softdevteam.github.io/grmtools/master/book/parsing_idioms.html
