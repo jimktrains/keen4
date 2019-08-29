@@ -3,32 +3,20 @@
 %nonassoc 'EXCLAMATION'
 %%
 ProgramRoot -> Result<Program, ()>:
-    GlobalsSection ReactiveSection { 
-      let globals = $1?;
-      let reactives = $2?;
-      Ok(Program {globals, reactives})
-    }
-    ;
-
-VDeclaration -> Result<Variable, ()>:
-    Identifier Identifier { 
-      let vartype = $1?;
-      let name = $2?;
-      Ok(Variable {name, vartype})
+    EnumSection GlobalsSection ReactiveSection { 
+      let enums = $1?;
+      let globals = $2?;
+      let reactives = $3?;
+      Ok(Program {enums, globals, reactives})
     }
     ;
 
 GlobalsSection -> Result<Globals, ()>:
-     'GLOBALS' 'LBRACK' ListOfVDecs 'RBRACK' { $3 }
+     'GLOBALS' 'LBRACE' ListOfAssignments 'RBRACE' { $3 }
  ;
 
-ListOfVDecs -> Result<Globals, ()>:
-      VDeclaration { Ok(vec![$1?]) }
-    | ListOfVDecs VDeclaration { flatten($1, $2) }
-    ;
-
 ReactiveSection -> Result<Reactives, ()>:
-      'REACTIVE' 'LBRACK' ListOfRDecs 'RBRACK' { $3 }
+      'REACTIVE' 'LBRACE' ListOfRDecs 'RBRACE' { $3 }
     ; 
 
 ListOfRDecs -> Result<Reactives, ()>:
@@ -37,7 +25,7 @@ ListOfRDecs -> Result<Reactives, ()>:
     ;
 
 RDeclaration -> Result<Reactive, ()>:
-    LogicalExpression 'LBRACK' ListOfAssignments 'RBRACK' {
+    LogicalExpression 'LBRACE' ListOfAssignments 'RBRACE' {
       let expr = $1?;
       let assignments = $3?;
       Ok(Reactive { expr, assignments })
@@ -60,7 +48,7 @@ Assignment -> Result<Assignment, ()>:
 Identifier -> Result<Identifier, ()>:
   'IDENT' {
     let name = $lexer.lexeme_str(&$1.map_err(|_| ())?).to_string();
-    Ok(Identifier { name })
+    Ok(name)
   }
   ;
 
@@ -74,19 +62,36 @@ LogicalExpression -> Result<Box<LogicalExpression>, ()>:
     | 'LPAREN' LogicalExpression 'RPAREN' { Ok(Box::new(LogicalExpression::LogicalExpression($2?))) }
     ;
 
+EnumSection -> Result<Enums, ()>:
+      'ENUMS' 'LBRACE' ListOfEDecs 'RBRACE' { $3 }
+    ; 
+
+ListOfEDecs -> Result<Enums, ()>:
+      EnumDeclaration { Ok(vec![$1?]) }
+    | ListOfEDecs EnumDeclaration { flatten($1, $2) }
+    ;
+
+EnumDeclaration -> Result<Enum, ()>:
+    Identifier 'LBRACE' ListOfIdentifiers 'RBRACE' {
+      let name = $1?;
+      let values = $3?;
+      Ok(Enum { name, values })
+    }
+    ;
+
+ListOfIdentifiers -> Result<Identifiers, ()>:
+      Identifier { Ok(vec![$1?]) }
+    | ListOfIdentifiers Identifier { flatten($1, $2) }
+    ;
 %%
 
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub struct Variable {
-  name: Identifier,
-  vartype: Identifier,
-}
+type Identifier = String;
+type Identifiers = Vec<Identifier>;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct Identifier {
-  // TODO: make this &str so that we're not copying the memory.
-  // I do not know how to deal with the lifetimes :(
-  name: String,
+pub struct Enum {
+  name: Identifier,
+  values: Identifiers,
 }
 
 #[derive(Debug)]
@@ -124,11 +129,13 @@ pub struct Reactive {
   assignments: Assignments,
 }
 
-type Globals = Vec<Variable>;
+type Globals = Assignments;
 type Reactives = Vec<Reactive>;
+type Enums = Vec<Enum>;
 
 #[derive(Debug)]
 pub struct Program {
+  enums: Enums,
   globals: Globals,
   reactives: Reactives,
 }

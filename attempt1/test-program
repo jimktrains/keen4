@@ -1,1 +1,21 @@
-globals { X y } reactive { (!!T(t)) & Thingy(Track1) { r <- e } }
+enums
+{
+  Silly 
+  {
+    Thingy
+    Whatchamacallit
+  }
+}
+
+globals
+{ 
+  X <- y 
+} 
+
+reactive
+{ 
+  (!!T(t)) & Thingy(Track1) 
+  { 
+    r <- e 
+  }
+}

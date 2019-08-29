@@ -37,6 +37,8 @@ fn read_and_parse() -> Program {
     prog
 }
 
+
+
 fn main() -> Result<(), ()> {
     let res = read_and_parse();
     println!("Result: {:?}", res);
