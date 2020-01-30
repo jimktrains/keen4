@@ -90,8 +90,8 @@ type Identifiers = Vec<Identifier>;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Enum {
-  name: Identifier,
-  values: Identifiers,
+  pub name: Identifier,
+  pub values: Identifiers,
 }
 
 #[derive(Debug)]
@@ -135,9 +135,9 @@ type Enums = Vec<Enum>;
 
 #[derive(Debug)]
 pub struct Program {
-  enums: Enums,
-  globals: Globals,
-  reactives: Reactives,
+  pub enums: Enums,
+  pub globals: Globals,
+  pub reactives: Reactives,
 }
 
 // Taken from https://softdevteam.github.io/grmtools/master/book/parsing_idioms.html

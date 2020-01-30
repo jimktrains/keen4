@@ -1,8 +1,9 @@
-enum Signal:
+enum SignalIndication:
   Clear
   Approach
   Stop
-  Unknown
+
+enum 
 
 enum DirectionDetector:
   Empty
@@ -33,19 +34,17 @@ statements:
 # Since the reäctive section must be exustive, it should not be possible
 # to set a state with the free variables that is not matched against.
 constraints:
-  Occupied(A) & signal_protects(S, A) & !Stop(S)
+  Occupied(A) & signal_protects(S, A) -> Stop(S)
 
-# For the moment only the =, <, <=, >=, >, &, |, and in operators are supported
-#   in the watch statements. Predicates should be exhustive.
 # Only simple assignment is permitted in the body.
 # Assigned variables may not be assigned to outside of the reäctive section.
 reäctive:
   Occupied(A) & signal_protects(S, A):
-    S <- Stop
+    S := Stop
   connected(A, B) & Empty(A) & Occupied(B) & signal_protects(S, A):
-    S <- Approach
+    S := Approach
   connected(A, B) & Empty(A) & Empty(B) & signal_protects(S, A):
-    S <- Clear
+    S := Clear
 
 # Track Sections
 #    A      B      C
@@ -56,12 +55,12 @@ reäctive:
 OccupancyDetector A
 OccupancyDetector B
 OccupancyDetector C
-Signal SA
-Signal SB
-Signal SC
+SignalIndication SA
+SignalIndication SB
+SignalIndication SC
 
 # Once we declare these facts, the signals may not be assigned to elsewhere
-# in the code
+# in the code because they are implicated in the reäctive section.
 facts:
   connected(A, B)
   connected(B, C)
@@ -69,3 +68,90 @@ facts:
   signal_protects(SB, B)
   signal_protects(SC, C)
 
+rangetable DacToBool:
+  dac_reading || boolean
+  ------------++----------
+          127 ||  false
+            _ ||   true
+
+table OccDetectorToDirectionDetector:
+  eastern_detector | western_detector | prev_direction || DirectionDetector
+  -----------------+------------------+----------------++------------------
+       true        |      true        |     Empty      || Unknown
+       false       |      false       |     Empty      || Empty
+
+       true        |      false       |     Empty      || Westbound
+       true        |      false       |     Westbound  || Westbound
+       true        |      true        |     Westbound  || Westbound
+       false       |      true        |     Westbound  || Westbound
+       false       |      false       |     Westbound  || Westbound
+
+       false       |      true        |     Empty      || Eastbound
+       false       |      true        |     Eastbound  || Eastbound
+       true        |      true        |     Eastbound  || Eastbound
+       true        |      false       |     Eastbound  || Eastbound       
+       false       |      false       |     Eastbound  || Eastbound
+
+#    1   
+#      2
+# 3  C  3
+#  2
+#    1
+
+table SignalIndicationToAspect:
+  detector  || output_1 | output_2 | output_3
+  ----------++----------+----------+---------
+   Clear    ||  High    |  Low     | Low
+   Approach ||  Low     |  High    | Low
+   Stop     ||  Low     |  Low     | High
+
+def SetPins(pin_1, pin_2, pin_3, output_1, output_2, output_3):
+
+
+setup:
+  // Maybe allow this to be done in C++?
+
+struct BlockDetectorSignalPins:
+  eastern_detector_pin,
+  western_detector_pin,
+  signal_1_pin,
+  signal_2_pin,
+  signal_3_pin
+
+struct BlockDetectorSignal:
+  eastern_detector_pin
+  western_detector_pin
+  signal_1_pin
+  signal_2_pin
+  signal_3_pin
+  DirectionDetector direction
+  SignalIndication indication
+
+
+def readBlockDetectorSignal(b):
+  {
+    eastern_detector = b.eastern_detector_pin -] readPin -] DacToBool,
+    western_detector = b.western_detector_pin -] readPin -] DacToBool,
+  } 
+  -] OccDetectorToDirectionDetector 
+
+def setBlockDetectorSignal(b):
+
+BlockDetectorSignalPins bdspA:
+  eastern_detector_pin = A1
+  western_detector_pin = A2
+  signal_1_pin = A3
+  signal_2_pin = A4
+  signal_3_pin = A5
+
+BlockDetectorSignalPins bdspB:
+  eastern_detector_pin = B1
+  western_detector_pin = B2
+  signal_1_pin = B3
+  signal_2_pin = B4
+  signal_3_pin = B5
+
+setup:
+
+main:
+  bdspA, bdspB -] readBlockDetectorSignal -]  A, B
