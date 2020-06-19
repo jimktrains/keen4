@@ -1,0 +1,13 @@
+[package]
+name = "keen4"
+version = "0.1.0"
+authors = ["Jim Keener <jim@jimkeener.com>"]
+edition = "2018"
+build = "build.rs"
+
+[build-dependencies]
+lalrpop = "0.17.2"
+
+[dependencies]
+lalrpop-util = "0.17.2"
+regex = "0.2.1"

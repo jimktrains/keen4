@@ -1,3 +1,5 @@
 * keen4: A language for control systems
 
-A means of defining constraints.
+A means of defining constraints for use in control systems. Long terms plans
+  are to build a full language. Short term plans are to build a solver to
+  plug into a C++ application.
