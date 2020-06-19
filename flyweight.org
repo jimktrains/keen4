@@ -1,0 +1,64 @@
+* Flyweight Keen4
+** Goals
+*** Boolean Variables
+*** Constraints
+The clauses in the constraint are "AND"ed together. E.g.
+#+BEGIN_SRC
+x
+y
+#+END_SRC
+is "x AND y" while
+
+#+BEGIN_SRC
+x ^ y
+z
+#+END_SRC
+is "(x XOR y) AND z". Internally this will be converted into CNF.
+
+Supported operations are & (and), ^ (xor), | (or), ~ (not), -> (consequence),
+    <-> (biconditional).
+
+The set of constraints must be proven solvable at compile-time for all
+inputs.
+
+Bound variables are ones that must always be set within a transaction.
+
+Free variables may only ever be the result of a transaction and may never
+appear within a transaction.
+
+Can we flag/warn redundant constraints?
+
+*** Transactions
+Transactions allow for the setting of variables that need to be computed
+from the constraints. Transactions must be provably solvable with a unique
+solution.
+
+All free variables affected by the bound variables set in the transaction
+must be set by the transaction.
+
+*** Translation to C++
+To simplify writing the backend, the code will be translated to C++ to be
+compiled into an executable.
+
+*** "Magic" IN and OUT vars
+To simplify testing, the IN and OUT vars will read from STDIN and write to
+STDOUT.
+
+** Samples
+#+BEGIN_SRC
+x := false
+y := false
+z := false
+
+constraints(bound=x,y; free=z) {
+ x ^ y ^ z
+}
+
+run {
+  z <- transaction {
+    x <- IN
+    y <- IN
+  }
+  OUT <- z
+}
+#+END_SRC

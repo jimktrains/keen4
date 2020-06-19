@@ -24,7 +24,8 @@ fn main() {
     assert!(x.is_ok());
     println!("{:?}", x.unwrap());
 
-    /*
-     *
-     */
+    let parser = keen4::ExprParser::new();
+    let x = parser.parse("$X & $Y");
+    assert!(x.is_ok());
+    println!("{:?}", x.unwrap());
 }

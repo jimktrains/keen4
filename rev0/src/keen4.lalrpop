@@ -1,4 +1,4 @@
-use crate::ast::nodes::{Fact, Term, Var, Predicate, ExprSide, Expr, Operator, PFact, Program};
+use crate::ast::nodes::{Fact, Term, Var, Predicate, ExprSide, Expr, Operator, PFact};
 
 grammar;
 
@@ -14,6 +14,7 @@ pub PFact : PFact<'input> = <name:r"[a-z][A-Za-z0-9_]*"> "(" <vars:List<Var>> ")
 pub ExprSide : ExprSide<'input> = {
   <p:Predicate> => ExprSide::Predicate(p),
   <f:PFact>     => ExprSide::PFact(f),
+  <v:Var>       => ExprSide::Var(v),
 };
 
 pub OrExpr : Expr<'input> = {

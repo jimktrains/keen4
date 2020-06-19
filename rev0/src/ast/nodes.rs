@@ -27,6 +27,7 @@ pub enum ExprSide<'a> {
     PFact(PFact<'a>),
     Predicate(Predicate<'a>),
     Expr(Expr<'a>),
+    Var(Var<'a>),
     None,
 }
 

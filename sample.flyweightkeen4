@@ -1,0 +1,36 @@
+#
+#      A          B         C
+# |---------|----------|---------|
+#  SA        SB         SC
+#
+
+A_occ <- false
+B_occ <- false
+
+SA_stop <- true
+SA_appr <- false
+
+SB_stop <- true
+
+constraints(bound=A_occ, B_occ ; free=SA_stop,SA_appr, SB_stop, SB_appr) {
+  A_occ -> SA_stop
+  B_occ -> SB_stop
+  C_occ -> SC_stop
+
+  (B_occ & ~SA_stop) -> SA_appr
+
+  (~SA_appr & ~SA_stop) -> ~A_occ
+  ~SB_stop -> ~B_occ
+
+  ~SA_appr | ~SA_stop
+}
+
+run {
+  SA_stop, SA_appr, SB_stop <- transaction {
+    A_occ <- IN
+    B_occ <- IN
+  }
+  OUT <- SA_stop
+  OUT <- SA_appr
+  OUT <- SB_stop
+}
