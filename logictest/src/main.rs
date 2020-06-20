@@ -401,6 +401,10 @@ fn main() {
             Expr::implication(Expr::xor(Expr::var(x), Expr::var(a)), Expr::var(y)),
         ),
     );
+    let expr2 = Expr::or(
+        Expr::var(a),
+        Expr::or(Expr::var(x), Expr::or(Expr::var(y), Expr::var(z))),
+    );
     println!("Expr: {}", expr.pp());
     let cnf = expr.cnf_expr();
     println!("CNF:  {}", cnf.pp());
@@ -424,4 +428,38 @@ fn main() {
 
     println!();
     println!("Truth Table:\n{}", cnf.truth_table_pp());
+
+    println!("=====================");
+    println!("Expr 2");
+    println!("=====================");
+    println!("Expr: {}", expr2.pp());
+    let cnf = expr2.cnf_expr();
+    println!("CNF:  {}", cnf.pp());
+    println!(
+        "Vars: {}",
+        expr2
+            .vars()
+            .iter()
+            .map(|x| String::from(x.0))
+            .collect::<Vec<String>>()
+            .join(", ")
+    );
+
+    println!();
+    println!(
+        "truth_table(Expr2) == truth_table(CNF2) => {}",
+        cnf.truth_table() == expr2.truth_table()
+    );
+
+    println!();
+    println!("CNF Table:\n{}", cnf.cnf().pp());
+
+    println!();
+    println!("Truth Table:\n{}", cnf.truth_table_pp());
+
+    println!();
+    println!(
+        "truth_table(Expr) == truth_table(Expr2) => {}",
+        expr.truth_table() == expr2.truth_table()
+    );
 }
