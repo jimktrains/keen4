@@ -109,7 +109,7 @@ impl<'a> Expr<'a> {
             Expr::Implication(x, y) => format!("({} -> {})", x.pp(), y.pp()),
             Expr::Biconditional(x, y) => format!("({} <-> {})", x.pp(), y.pp()),
             Expr::Or(x, y) => format!("({} | {})", x.pp(), y.pp()),
-            Expr::Xor(x, y) => format!("({} ^ {})", x.pp(), y.pp()),
+            Expr::Xor(x, y) => format!("({} + {})", x.pp(), y.pp()),
         }
     }
 
