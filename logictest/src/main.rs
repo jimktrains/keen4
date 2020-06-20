@@ -21,22 +21,22 @@ impl<'a> Expr<'a> {
         Box::new(Expr::Var(Var(s)))
     }
     pub fn not(p: Box<Self>) -> Box<Self> {
-        Box::new(Self::Not(p.clone()))
+        Box::new(Self::Not(p))
     }
     pub fn and(p: Box<Self>, q: Box<Self>) -> Box<Self> {
-        Box::new(Self::And(p.clone(), q.clone()))
+        Box::new(Self::And(p, q))
     }
     pub fn or(p: Box<Self>, q: Box<Self>) -> Box<Self> {
-        Box::new(Self::Or(p.clone(), q.clone()))
+        Box::new(Self::Or(p, q))
     }
     pub fn xor(p: Box<Self>, q: Box<Self>) -> Box<Self> {
-        Box::new(Self::Xor(p.clone(), q.clone()))
+        Box::new(Self::Xor(p, q))
     }
     pub fn implication(p: Box<Self>, q: Box<Self>) -> Box<Self> {
-        Box::new(Self::Implication(p.clone(), q.clone()))
+        Box::new(Self::Implication(p, q))
     }
     pub fn biconditional(p: Box<Self>, q: Box<Self>) -> Box<Self> {
-        Box::new(Self::Biconditional(p.clone(), q.clone()))
+        Box::new(Self::Biconditional(p, q))
     }
     pub fn cnf(self) -> Box<Expr<'a>> {
         return match self {
