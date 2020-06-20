@@ -17,45 +17,64 @@ enum Expr<'a> {
 }
 
 impl<'a> Expr<'a> {
+    pub fn var(s: &'a str) -> Box<Self> {
+        Box::new(Expr::Var(Var(s)))
+    }
+    pub fn not(p: Box<Self>) -> Box<Self> {
+        Box::new(Self::Not(p.clone()))
+    }
+    pub fn and(p: Box<Self>, q: Box<Self>) -> Box<Self> {
+        Box::new(Self::And(p.clone(), q.clone()))
+    }
+    pub fn or(p: Box<Self>, q: Box<Self>) -> Box<Self> {
+        Box::new(Self::Or(p.clone(), q.clone()))
+    }
+    pub fn xor(p: Box<Self>, q: Box<Self>) -> Box<Self> {
+        Box::new(Self::Xor(p.clone(), q.clone()))
+    }
+    pub fn implication(p: Box<Self>, q: Box<Self>) -> Box<Self> {
+        Box::new(Self::Implication(p.clone(), q.clone()))
+    }
+    pub fn biconditional(p: Box<Self>, q: Box<Self>) -> Box<Self> {
+        Box::new(Self::Biconditional(p.clone(), q.clone()))
+    }
     pub fn cnf(self) -> Box<Expr<'a>> {
         return match self {
-            Expr::Var(n) => Box::new(Expr::Var(n)),
-            Expr::Not(x) => Box::new(Expr::Not(x.cnf())),
-            Expr::And(x, y) => Box::new(Expr::And(x.cnf(), y.cnf())),
-            Expr::Implication(p, q) => Box::new(Expr::Or(Box::new(Expr::Not(p)), q)),
+            Expr::Var(n) => Expr::var(n.0),
+            Expr::Not(x) => Expr::not(x.cnf()),
+            Expr::And(x, y) => Expr::and(x.cnf(), y.cnf()),
+            Expr::Implication(p, q) => Expr::or(Expr::not(p), q),
             Expr::Biconditional(p, q) => {
                 let p = p.cnf();
                 let q = q.cnf();
-                Box::new(Expr::And(
-                    Box::new(Expr::Or(Box::new(Expr::Not(p.clone())), q.clone())),
-                    Box::new(Expr::Or(p, Box::new(Expr::Not(q)))),
-                ))
+                Expr::and(
+                    Expr::or(Expr::not(p.clone()), q.clone()),
+                    Expr::or(p, Expr::not(q)),
+                )
             }
-            Expr::Xor(p, y) => Expr::And(
-                Box::new(Expr::Or(p.clone(), y.clone())),
-                Box::new(Expr::Not(Box::new(Expr::And(p, y)))),
-            )
-            .cnf(),
+            Expr::Xor(p, y) => {
+                Expr::and(Expr::or(p.clone(), y.clone()), Expr::not(Expr::and(p, y))).cnf()
+            }
             Expr::Or(p, y) => match (*p, *y) {
                 (p, Expr::And(q, r)) => {
                     let p = p.cnf();
                     let q = q.cnf();
                     let r = r.cnf();
-                    Box::new(Expr::And(
-                        Box::new(Expr::Or(p.clone(), q.clone())),
-                        Box::new(Expr::Or(p.clone(), r.clone())),
-                    ))
+                    Expr::and(
+                        Expr::or(p.clone(), q.clone()),
+                        Expr::or(p.clone(), r.clone()),
+                    )
                 }
                 (Expr::And(q, r), y) => {
                     let y = y.cnf();
                     let q = q.cnf();
                     let r = r.cnf();
-                    Box::new(Expr::And(
-                        Box::new(Expr::Or(y.clone(), q.clone())),
-                        Box::new(Expr::Or(y.clone(), r.clone())),
-                    ))
+                    Expr::and(
+                        Expr::or(y.clone(), q.clone()),
+                        Expr::or(y.clone(), r.clone()),
+                    )
                 }
-                (p, y) => Box::new(Expr::Or(p.cnf(), y.cnf())),
+                (p, y) => Expr::or(p.cnf(), y.cnf()),
             },
         };
     }
@@ -85,12 +104,12 @@ impl<'a> Expr<'a> {
     pub fn pp(&self) -> String {
         match self {
             Expr::Var(n) => String::from(n.0),
-            Expr::Not(n) => String::from("~") + &n.pp(),
-            Expr::And(x, y) => String::from("(") + &x.pp() + " & " + &y.pp() + ")",
-            Expr::Implication(x, y) => String::from("(") + &x.pp() + " -> " + &y.pp() + ")",
-            Expr::Biconditional(x, y) => String::from("(") + &x.pp() + " <-> " + &y.pp() + ")",
-            Expr::Or(x, y) => String::from("(") + &x.pp() + " | " + &y.pp() + ")",
-            Expr::Xor(x, y) => String::from("(") + &x.pp() + " ^ " + &y.pp() + ")",
+            Expr::Not(n) => format!("~{}", n.pp()),
+            Expr::And(x, y) => format!("({} & {})", x.pp(), y.pp()),
+            Expr::Implication(x, y) => format!("({} -> {})", x.pp(), y.pp()),
+            Expr::Biconditional(x, y) => format!("({} <-> {})", x.pp(), y.pp()),
+            Expr::Or(x, y) => format!("({} | {})", x.pp(), y.pp()),
+            Expr::Xor(x, y) => format!("({} ^ {})", x.pp(), y.pp()),
         }
     }
 
@@ -155,22 +174,16 @@ impl<'a> Expr<'a> {
 }
 
 fn main() {
-    let x = Var("x");
-    let y = Var("y");
-    let z = Var("z");
-    let a = Var("a");
-    let expr = Expr::Or(
-        Box::new(Expr::Var(z)),
-        Box::new(Expr::And(
-            Box::new(Expr::Biconditional(
-                Box::new(Expr::Var(y)),
-                Box::new(Expr::Var(a)),
-            )),
-            Box::new(Expr::Implication(
-                Box::new(Expr::Xor(Box::new(Expr::Var(x)), Box::new(Expr::Var(a)))),
-                Box::new(Expr::Var(y)),
-            )),
-        )),
+    let x = "x";
+    let y = "y";
+    let z = "z";
+    let a = "a";
+    let expr = Expr::or(
+        Expr::var(z),
+        Expr::and(
+            Expr::biconditional(Expr::var(y), Expr::var(a)),
+            Expr::implication(Expr::xor(Expr::var(x), Expr::var(a)), Expr::var(y)),
+        ),
     );
     let cnf = expr.clone().cnf();
     println!("Expr: {:?}", expr);
