@@ -263,7 +263,7 @@ impl<'a> Expr<'a> {
     pub fn eval(&self, vals: &HashMap<Var<'a>, bool>) -> bool {
         match self {
             // Yes, right now let's just panic if not all vars are present.
-            Expr::Var(n) => *vals.get(&n).unwrap(),
+            Expr::Var(n) => vals[&n],
             Expr::Not(n) => !n.eval(vals),
             Expr::And(x, y) => x.eval(vals) & y.eval(vals),
             Expr::Implication(x, y) => !x.eval(vals) | y.eval(vals),
