@@ -1,4 +1,4 @@
-* Flyweight Keen4
+* Flyweight
 ** Goals
 *** Boolean Variables
 *** Constraints
@@ -10,12 +10,12 @@ y
 is "x AND y" while
 
 #+BEGIN_SRC
-x ^ y
+x + y
 z
 #+END_SRC
 is "(x XOR y) AND z". Internally this will be converted into CNF.
 
-Supported operations are & (and), ^ (xor), | (or), ~ (not), -> (consequence),
+Supported operations are & (and), + (xor), | (or), ~ (not), -> (consequence),
     <-> (biconditional).
 
 The set of constraints must be proven solvable at compile-time for all
