@@ -52,17 +52,22 @@ impl<'a> CNFTerm<'a> {
 struct CNF<'a>(Vec<Vec<CNFTerm<'a>>>);
 
 impl<'a> CNF<'a> {
-    pub fn pp(self) {
-        for mut line in self.0 {
-            line.sort();
-            println!(
-                "{}",
-                line.iter()
-                    .map(|x| format!("{:>2}", x.pp()))
-                    .collect::<Vec<String>>()
-                    .join(" ")
-            );
-        }
+    pub fn pp(self) -> String {
+        self.0
+            .iter()
+            .map(|line| {
+                let mut line = line.clone();
+                line.sort();
+                format!(
+                    "{}",
+                    line.iter()
+                        .map(|x| format!("{:>2}", x.pp()))
+                        .collect::<Vec<String>>()
+                        .join(" ")
+                )
+            })
+            .collect::<Vec<String>>()
+            .join("\n")
     }
 }
 
@@ -309,6 +314,28 @@ impl<'a> Expr<'a> {
         (vars.clone(), self.truth_table_row(&vars, &mut vals, 0))
     }
 
+    pub fn truth_table_pp(&self) -> String {
+        let (vars, vals) = self.truth_table();
+        let header = vars
+            .into_iter()
+            .map(|x| String::from(x.0))
+            .collect::<Vec<String>>()
+            .join(" ")
+            + " Result";
+        let body = vals
+            .into_iter()
+            .map(|x| {
+                x.into_iter()
+                    .map(|x| String::from(if x { "T" } else { "F" }))
+                    .collect::<Vec<String>>()
+                    .join(" ")
+            })
+            .collect::<Vec<String>>()
+            .join("\n");
+
+        return header + "\n" + &body;
+    }
+
     fn to_cnf(self) -> CNF<'a> {
         match self {
             Expr::And(p, q) => {
@@ -385,10 +412,16 @@ fn main() {
             .collect::<Vec<String>>()
             .join(", ")
     );
+
+    println!();
     println!(
         "truth_table(Expr) == truth_table(CNF) => {}",
         cnf.truth_table() == expr.truth_table()
     );
 
-    println!("{:?}", cnf.cnf().pp());
+    println!();
+    println!("CNF Table:\n{}", cnf.cnf().pp());
+
+    println!();
+    println!("Truth Table:\n{}", cnf.truth_table_pp());
 }
