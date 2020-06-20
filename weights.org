@@ -37,8 +37,11 @@ All free variables affected by the bound variables set in the transaction
 must be set by the transaction.
 
 *** Translation to C++
-To simplify writing the backend, the code will be translated to C++ to be
-compiled into an executable.
+To simplify writing the backend, the code will be translated to C in
+order to be compiled into an executable.
+
+This will make it easier to compile for an arduino/AVR, as well as other
+microcontrollers.
 
 *** "Magic" IN and OUT vars
 To simplify testing, the IN and OUT vars will read from STDIN and write to
@@ -51,7 +54,7 @@ y := false
 z := false
 
 constraints(bound=x,y; free=z) {
- x ^ y ^ z
+ x + y + z
 }
 
 run {
@@ -62,3 +65,17 @@ run {
   OUT <- z
 }
 #+END_SRC
+* Bantamweight
+   - Enums / Sum Types/ match
+   - Evaluate enum constraints and solve for free enum variables
+* Featherweight
+   - Integer addition and subtraction
+   - Integer constraints
+   - Byte type
+   - Arrays and Slices
+   - Struct
+* Lightweight
+* Welterweight
+* Middleweight
+* Cruiserweight
+* Heavyweight
