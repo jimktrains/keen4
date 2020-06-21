@@ -1,5 +1,16 @@
 * keen4: A language for control systems
 
-A means of defining constraints for use in control systems. Long terms plans
-  are to build a full language. Short term plans are to build a solver to
-  plug into a C++ application.
+A means of defining constraints for use in control systems.
+
+Ideally it'd be possible to write relativly complex discrete control systems
+in a safe and sanity-perserving way. This means no manual memory managment,
+no garbage collection, no unbounded operations beyond the main event loop,
+constraints on memory, constraints on processing power, and hard-realtime
+deadlines.
+
+(N.B.: the goal of being able to work with hard-realtime deadlines means that
+"constraints on processing power" does not mean "as fast as possible", but
+"as fast as consistently possible".)
+
+Please see [[weights.org]] for mor information about the progress and plans
+of this project.

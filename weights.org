@@ -1,8 +1,30 @@
-- [[#flyweight][Flyweight]]
+Since this is a relatively complex project I'll never actually be able
+to complete, I figured I'd break it down into chunks that might be somewhat
+doable. In the spirit of
+[[https://www.cis.upenn.edu/~bcpierce/papers/fj-toplas.pdf][Featherweight
+Java]] and [[https://arxiv.org/pdf/2005.11710.pdf][Featherweight Go]], those
+chunks are named after boxing weight classes.
+
+- [[#flyweight][Flyweight]] - Basic logical deductions
+- [[#bantamweight][Bantamweight]] - Algebraic Types and First Order Logic
+- [[#featherweight][Featherweight]] - Polymorphism and functions, no recursion
+- [[#lightweight][Lightweight]] - Dependent types and recursion
+- [[#welterweight][Welterweight]] - Structural Typing
+- [[#middleweight][Middleweight]] - Substructural Typing
+- [[#cruiserweight][Cruiserweight]] - Integers
+- [[#heavyweight][Heavyweight]] - Device Setup and Optimizations
+
+There are, however, things that will need to be done in a seperate
+initiative, mainly real-time constraints inforced via worst-case cycle
+counts.
 
 * Flyweight
 #+BEGIN_COMMENT
-So, apparently org-ruby doesn't do links properly and the only way to do an internal link is to  "guess" the anchor that's going to be generated. For some semblance of sanity, though, I'm still going to define those anchors. See https://gist.github.com/will-henney/d8564133e07e546789c0 which is from M _2014_ -_-
+So, apparently org-ruby doesn't do links properly and the only way to do an
+internal link is to  "guess" the anchor that's going to be generated. For
+some semblance of sanity, though, I'm still going to define those anchors.
+See https://gist.github.com/will-henney/d8564133e07e546789c0 which is from
+_2014_ -_-
 #+END_COMMENT
 :PROPERTIES:
 :CUSTOM_ID: flyweight
@@ -74,6 +96,9 @@ run {
 }
 #+END_SRC
 * Bantamweight
+:PROPERTIES:
+:CUSTOM_ID: bantamweight
+:END:
 ** Goals
 *** Enums / Sum Types / match
 *** Structs / Product Types
@@ -88,6 +113,8 @@ When predicate parameters are named, the names must always be used in
 facts.
 
 Only predicates declared can be used.
+
+This should be roughly equivalent to First Order Logic.
 
 ** Samples
 #+BEGIN_SRC
@@ -198,12 +225,18 @@ run {
 }
 #+END_SRC
 * Featherweight
+:PROPERTIES:
+:CUSTOM_ID: featherweight
+:END:
 ** Goals
 *** Traits
 *** Polymorphic functions, methods, and structs
 Recursion is disallowed.
 *** Nominal Type System
 * Lightweight
+:PROPERTIES:
+:CUSTOM_ID: lightweight
+:END:
 ** Goals
 *** Dependently typed functions, methods, and structs with bounded recursion
 *** Arrays
@@ -220,15 +253,24 @@ struct<T:Type, 0> Array{
 }
 #+END_SRC
 * Welterweight
+:PROPERTIES:
+:CUSTOM_ID: welterweight
+:END:
 ** Goals
 *** Structural type system for traits and structs
 * Middleweight
+:PROPERTIES:
+:CUSTOM_ID: middleweight
+:END:
 ** Goals
 *** Linear type system
 *** Array slices
 Slices fall in with the lineary type system as they allow access a
 segment of memory without allowing for it to be modified.
 * Cruiserweight
+:PROPERTIES:
+:CUSTOM_ID: cruiserweight
+:END:
 ** Goals
 *** Integer addition and subtraction
 *** Integer ranges and constraints
@@ -257,6 +299,9 @@ fn next_state(c: State, i: Input1) -> o: State {
 }
 #+END_SRC
 * Heavyweight
+:PROPERTIES:
+:CUSTOM_ID: heavyweight
+:END:
 ** Goals
 *** Direct Memory Access
 *** Direct Register Access
