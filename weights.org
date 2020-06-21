@@ -193,10 +193,11 @@ run {
 ** Goals
 *** Traits
 *** Polymorphic functions, methods, and structs
+Recursion is disallowed.
 *** Nominal Type System
 * Lightweight
 ** Goals
-*** Dependently typed functions, methods, and structs with recursion
+*** Dependently typed functions, methods, and structs with bounded recursion
 *** Arrays
 Arrays can be viewed as a special case of a dependently typed structure, but
 with some additional syntax for accessing elements directly without
@@ -251,3 +252,11 @@ fn next_state(c: State, i: Input1) -> o: State {
 ** Goals
 *** Direct Memory Access
 *** Direct Register Access
+*** Tail Call Optimization
+*** Annotations
+#+BEGIN_SRC
+constraints {
+      @title 49 CFR § 236.205 (a) Signal control circuits
+      Occupied($A) & protects($A, $D, $S) => Stop($S)
+}
+#+END_SRC
