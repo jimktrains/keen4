@@ -197,8 +197,10 @@ run {
 * Lightweight
 ** Goals
 *** Dependently typed functions, methods, and structs with recursion
-*** Arrays and Slices
-Arrays can be viewed as a special case of a dependently typed structure:
+*** Arrays
+Arrays can be viewed as a special case of a dependently typed structure, but
+with some additional syntax for accessing elements directly without
+having to recurse through the structure.
 #+BEGIN_SRC
 struct<T:Type, N:Natural> Array{
     v T
@@ -214,11 +216,37 @@ struct<T:Type, 0> Array{
 * Middleweight
 ** Goals
 *** Linear type system
+*** Array slices
+Slices fall in with the lineary type system as they allow access a
+segment of memory without allowing for it to be modified.
 * Cruiserweight
 ** Goals
 *** Integer addition and subtraction
 *** Integer ranges and constraints
 *** Byte type
+*** Table Lookup Functions
+This would only work with enum types, and very similar to how matching
+does.
+#+BEGIN_SRC
+enum State {
+      Moving,
+      Stop,
+}
+
+enum Input1 {
+      None,
+      Accelerator,
+      Brake,
+}
+fn next_state(c: State, i: Input1) -> o: State {
+      | c      | i           || o      |
+      +---------------------------------
+      | Moving | Break       || Stop   |
+      | Moving | _           || Moving |
+      | Stop   | Accelerator || Moving |
+      | Stop   | _           || Stop   |
+}
+#+END_SRC
 * Heavyweight
 ** Goals
 *** Direct Memory Access
