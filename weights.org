@@ -16,7 +16,10 @@ chunks are named after boxing weight classes.
 
 There are, however, things that will need to be done in a seperate
 initiative, mainly real-time constraints inforced via worst-case cycle
-counts.
+counts. Also floating point. Floating point gets into this area of language
+features that may be processor dependent, and not just parameters like "max stack
+size", so I would like to give them careful thought only once I have a
+language to actually think about.
 
 * Flyweight
 #+BEGIN_COMMENT
