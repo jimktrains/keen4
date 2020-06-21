@@ -66,16 +66,160 @@ run {
 }
 #+END_SRC
 * Bantamweight
-   - Enums / Sum Types/ match
-   - Evaluate enum constraints and solve for free enum variables
+** Goals
+*** Enums / Sum Types / match
+*** Structs / Product Types
+*** Evaluate enum constraints and solve for free enum variables
+*** Evaluate predicates and rules
+This includes finding all applicable and intermediary predicates based
+on the given facts.
+
+Facts must be unqiue.
+
+When predicate parameters are named, the names must always be used in
+facts.
+
+Only predicates declared can be used.
+
+** Samples
+#+BEGIN_SRC
+
+enum SignalIndication {
+    Clear,
+    Approach,
+    Stop
+}
+
+struct Signal {
+    SignalIndication
+}
+
+
+enum  Occupancy {
+    Unoccupied,
+    Occupied,
+    Unknown,
+}
+
+struct Track {
+    Occupancy
+}
+
+enum SwitchDirection {
+    Straight,
+    Diverted,
+    Unknown,
+}
+
+struct Switch {
+      SwitchDirection
+}
+
+
+T1 <- Track{}
+T2 <- Track{}
+T3 <- Track{}
+T4 <- Track{}
+
+Sw1 <- Switch{}
+
+Sg1 <- Signal{}
+
+predicates {
+    connected(Track, Track)
+    protects(Signal, Track)
+    connected_via_switch(Track, Switch, _Straigt: Track, _Diverted: Track)
+}
+rules {
+    connected($TA, $TB) :- connected_via($TA, $SW, $TB, $TC) & SwitchDirection::Straight($SW)
+    connected($TA, $TC) :- connected_via($TA, $SW, $TB, $TC) & SwitchDirection::Diverted($SW)
+    connected($TA, $TB) :- connected($TB, $A)
+
+}
+facts {
+    connected(T1, T2)
+    connected_via(T2, Sw1, _Straigt=T3, _Diverted=T4)
+    protects(Sg1, T2)
+}
+constraints (bound=T1,T2,T3,T4,Sw1;free=Sg1) {
+    Occupied($T) & protects($SG, $T) -> Stop($SG)
+    Occupied($TA) & connected($TA, $TB) & protects($SG, $TB) & ~Stop($SG) -> Approach($SG)
+}
+run {
+    Sg1 = transaction {
+        T1.Occupancy <- IN
+        T2.Occupancy <- IN
+        T3.Occupancy <- IN
+        T4.Occupancy <- IN
+        Sw1.SwitchDirection <- IN
+    }
+    # If, for instance
+    #   Unoccupied(T1)
+    #   Unoccupied(T2)
+    #   Occupancy(T3)
+    #   Unoccupied(T4)
+    #   Straight(Sw1)
+    # then, the system will be expected to figure out that...
+    #
+    #
+    # connected(T2, $TB) :- connected_via(T2, $SW, $TB, $TC) & SwitchDirection::Straight($SW)
+    # connected(T2, $TC) :- connected_via(T2, $SW, $TB, $TC) & SwitchDirection::Diverted($SW)
+    #
+    # connected(T2, $TB) :- connected_via(T2, Sg1, T3, T4) & SwitchDirection::Straight(Sg1)
+    # connected(T2, $TC) :- connected_via(T2, Sg1, T3, T4) & SwitchDirection::Diverted(Sg1)
+    #
+    # connected(T2, T3) :- connected_via(T1, Sg1, T3, T4) & SwitchDirection::Straight(Sg1)
+    #
+    # connected(T3, $TB) :- connected($TB, T3)
+    #
+    # connected(T3, T2) :- connected(T2, T3)
+    #
+    # Occupied(T3) & protects($SG, $T) -> Stop($SG)
+    # Occupied(T3) & connected(T3, $TB) & protects($SG, $TB) & ~Stop($SG) -> Approach($SG)
+    #
+    # There is no fact for protects($SG, T3) and so it gets dropped
+    # Occupied(T3) & connected(T3, T2) & protects($SG, T2) & ~Stop($SG) -> Approach($SG)
+    #
+    # Occupied(T3) & connected(T3, T2) & protects(Sg1, T2) & ~Stop(Sg1) -> Approach(Sg1)
+    #
+    # Since, Stop(Sg1) isn't backed by any fact or rule, ~Stop(Sg1) is true.
+    # Since, Sg1, is a free variable, this roughly becomes:
+    #   What value of Sg1 could make true -> Approach(Sg1)
+    # and so, a value for the Indication of Sg1 is set to Approach to make
+    # the constraint true.
+}
+#+END_SRC
 * Featherweight
-   - Integer addition and subtraction
-   - Integer constraints
-   - Byte type
-   - Arrays and Slices
-   - Struct
+** Goals
+*** Traits
+*** Polymorphic functions, methods, and structs
+*** Nominal Type System
 * Lightweight
+** Goals
+*** Dependently typed functions, methods, and structs with recursion
+*** Arrays and Slices
+Arrays can be viewed as a special case of a dependently typed structure:
+#+BEGIN_SRC
+struct<T:Type, N:Natural> Array{
+    v T
+    rest Array<T, N-1>
+}
+struct<T:Type, 0> Array{
+    v T
+}
+#+END_SRC
 * Welterweight
+** Goals
+*** Structural type system for traits and structs
 * Middleweight
+** Goals
+*** Linear type system
 * Cruiserweight
+** Goals
+*** Integer addition and subtraction
+*** Integer ranges and constraints
+*** Byte type
 * Heavyweight
+** Goals
+*** Direct Memory Access
+*** Direct Register Access
