@@ -1,4 +1,12 @@
+- [[#flyweight][Flyweight]]
+
 * Flyweight
+#+BEGIN_COMMENT
+So, apparently org-ruby doesn't do links properly and the only way to do an internal link is to  "guess" the anchor that's going to be generated. For some semblance of sanity, though, I'm still going to define those anchors. See https://gist.github.com/will-henney/d8564133e07e546789c0 which is from M _2014_ -_-
+#+END_COMMENT
+:PROPERTIES:
+:CUSTOM_ID: flyweight
+:END:
 ** Goals
 *** Boolean Variables
 *** Constraints
