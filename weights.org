@@ -19,7 +19,7 @@ initiative, mainly real-time constraints inforced via worst-case cycle
 counts. Also floating point. Floating point gets into this area of language
 features that may be processor dependent, and not just parameters like "max stack
 size", so I would like to give them careful thought only once I have a
-language to actually think about.
+language to actually think about. (Ditto for BCD numbers.)
 
 * Flyweight
 #+BEGIN_COMMENT
@@ -46,7 +46,8 @@ is "x AND y" while
 x + y
 z
 #+END_SRC
-is "(x XOR y) AND z". Internally this will be converted into CNF.
+is "(x XOR y) AND z". Internally this will be converted into
+    [[https://en.wikipedia.org/wiki/Conjunctive_normal_form][CNF]].
 
 Supported operations are & (and), + (xor), | (or), ~ (not), -> (consequence),
     <-> (biconditional).
@@ -133,7 +134,7 @@ struct Signal {
 }
 
 
-enum  Occupancy {
+enum Occupancy {
     Unoccupied,
     Occupied,
     Unknown,
@@ -191,7 +192,7 @@ run {
         T4.Occupancy <- IN
         Sw1.SwitchDirection <- IN
     }
-    # If, for instance
+    # Like Prolog, if, for instance
     #   Unoccupied(T1)
     #   Unoccupied(T2)
     #   Occupancy(T3)
@@ -215,7 +216,7 @@ run {
     # Occupied(T3) & protects($SG, $T) -> Stop($SG)
     # Occupied(T3) & connected(T3, $TB) & protects($SG, $TB) & ~Stop($SG) -> Approach($SG)
     #
-    # There is no fact for protects($SG, T3) and so it gets dropped
+    # There are no fact that match protects($SG, T3) and so it gets dropped
     # Occupied(T3) & connected(T3, T2) & protects($SG, T2) & ~Stop($SG) -> Approach($SG)
     #
     # Occupied(T3) & connected(T3, T2) & protects(Sg1, T2) & ~Stop(Sg1) -> Approach(Sg1)

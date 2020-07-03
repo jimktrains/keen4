@@ -126,6 +126,7 @@ impl<'a> Expr<'a> {
             Expr::False() => Expr::falsey(),
             Expr::And(p, y) => match (*p, *y) {
                 (Expr::True(), p) | (p, Expr::True()) => Box::new(p),
+                // This will essentially undo the OR-of-ANDs expansion.
                 //(p, Expr::Or(q, r)) | (Expr::Or(q, r), p) => {
                 //    let p = p.simplify();
                 //    let q = q.simplify();
@@ -172,10 +173,14 @@ impl<'a> Expr<'a> {
                         Expr::or(p.clone(), r.clone()),
                     )
                 }
-                (Expr::Var(v), Expr::Or(p, q)) | (Expr::Or(p, q), Expr::Var(v)) => Expr::or(
-                    Expr::or(Expr::var(v.0), p.simplify()),
-                    Expr::or(Expr::var(v.0), q.simplify()),
-                ),
+                // There is no need to expand ORs; it simply leads to a more complex form, e.g.
+                // Expanded: ((((z | ~y) | (z | a)) & ((z | y) | (z | ~a))) & (((z | y) | ((z | x) | (z | ~a))) & ((z | y) | ((z | a) | (z | ~x)))))
+                // Not:      (((z | (~y | a)) & (z | (y | ~a))) & ((z | (y | (x | ~a))) & (z | (y | (a | ~x)))))
+                // The later is easier for humans to reason about and is simpler than the first.
+                //(Expr::Var(v), Expr::Or(p, q)) | (Expr::Or(p, q), Expr::Var(v)) => Expr::or(
+                //    Expr::or(Expr::var(v.0), p.simplify()),
+                //    Expr::or(Expr::var(v.0), q.simplify()),
+                //),
                 (Expr::Var(v), Expr::Var(w)) => {
                     if v == w {
                         Expr::var(v.0)
