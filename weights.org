@@ -33,7 +33,8 @@ initiative, mainly real-time constraints inforced via worst-case cycle
 counts. Also floating point. Floating point gets into this area of language
 features that may be processor dependent, and not just parameters like "max stack
 size", so I would like to give them careful thought only once I have a
-language to actually think about. (Ditto for BCD numbers.)
+language to actually think about. (Ditto for BCD numbers and all
+multiplication and division.)
 
 * Flyweight
 #+BEGIN_COMMENT
@@ -251,6 +252,56 @@ run {
 *** Polymorphic functions, methods, and structs
 Recursion is disallowed.
 *** Nominal Type System
+** Samples
+#+BEGIN_SRC
+
+// <, >, =, <=, and >= will be infered.
+// Returning None will cause those to return false.
+trait Comparable[[_T]] {
+   fn op<=>(x: _T, y: _T) => Trichotomy?
+}
+
+struct Point[[_V]] {
+   x: _V
+   y: _V
+}
+
+impl Comparable[[Point]] {
+   // It's an ordering, anyway
+   fn op<=>(a: Point, b: Point) => Trichotomy? {
+      if a.x < b.y {
+          Trichotomy::LessThan
+      } elif a.y < b.y {
+          Trichotomy::GreaterThan
+      } else {
+          Trichotomy::Equal
+      }
+   }
+}
+
+run {
+   p1 <- Point{x <- 1, y <- 2}
+   p2 <- Point{x <- 2, x <- 1}
+   match p1 <=> p2 {
+      Trichotomy::LessThan {
+          OUT <- False
+          OUT <- True
+      }
+      Trichotomy::GreaterThan {
+          OUT <- True
+          OUT <- False
+      }
+      Trichotomy::Equal {
+          OUT <- True
+          OUT <- True
+      }
+      None {
+          OUT <- False
+          OUT <- False
+      }
+   }
+}
+#+END_SRC
 * Lightweight
 :PROPERTIES:
 :CUSTOM_ID: lightweight
@@ -262,12 +313,30 @@ Arrays can be viewed as a special case of a dependently typed structure, but
 with some additional syntax for accessing elements directly without
 having to recurse through the structure.
 #+BEGIN_SRC
-struct<T:Type, N:Natural> Array{
+struct[[_T, #N]] Array{
     v T
-    rest Array<T, N-1>
+    rest Array[[#T, #_P(#N)]]
 }
-struct<T:Type, 0> Array{
-    v T
+struct[[_T, 0]] Array{
+    v _T
+}
+
+fn map(a: Array[[_T, #N]], f: _T -> _S) -> Array[[_S, #N]] {
+    match #N {
+      0 => Array{v <- f(a.v)}
+      _ => Array{v <- f(a.v), rest <- map(a.rest, f)}
+    }
+}
+
+fn fib[[#N]] -> (int, int) {
+    match #N {
+      0      => 1, 0
+      #_S(0) => 1, 1
+      _      => {
+            x, y <- fib[[#_P(#N)]]
+            x + y, x
+          }
+    }
 }
 #+END_SRC
 * Welterweight

@@ -2,6 +2,10 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::ops::BitAnd;
+use std::ops::BitOr;
+use std::ops::BitXor;
+use std::ops::Not;
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Copy, PartialOrd, Ord)]
 struct Var<'a>(&'a str);
@@ -17,6 +21,72 @@ enum Expr<'a> {
     Xor(Box<Expr<'a>>, Box<Expr<'a>>),
     True(),
     False(),
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+enum EvalResult<'a> {
+    Expr(Box<Expr<'a>>),
+    Bool(bool),
+}
+
+impl<'a> BitAnd for EvalResult<'a> {
+    type Output = Self;
+    fn bitand(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (EvalResult::Bool(x), EvalResult::Bool(y)) => EvalResult::Bool(x & y),
+            (EvalResult::Bool(x), EvalResult::Expr(y))
+            | (EvalResult::Expr(y), EvalResult::Bool(x)) => {
+                if x {
+                    EvalResult::Expr(y)
+                } else {
+                    EvalResult::Bool(false)
+                }
+            }
+            (EvalResult::Expr(x), EvalResult::Expr(y)) => EvalResult::Expr(Expr::and(x, y)),
+        }
+    }
+}
+
+impl<'a> BitOr for EvalResult<'a> {
+    type Output = Self;
+    fn bitor(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (EvalResult::Bool(x), EvalResult::Bool(y)) => EvalResult::Bool(x | y),
+            (EvalResult::Bool(x), EvalResult::Expr(y))
+            | (EvalResult::Expr(y), EvalResult::Bool(x)) => {
+                if x {
+                    EvalResult::Bool(true)
+                } else {
+                    EvalResult::Expr(y)
+                }
+            }
+            (EvalResult::Expr(x), EvalResult::Expr(y)) => EvalResult::Expr(Expr::or(x, y)),
+        }
+    }
+}
+
+impl<'a> BitXor for EvalResult<'a> {
+    type Output = Self;
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (EvalResult::Bool(x), EvalResult::Bool(y)) => EvalResult::Bool(x ^ y),
+            (EvalResult::Bool(x), EvalResult::Expr(y))
+            | (EvalResult::Expr(y), EvalResult::Bool(x)) => {
+                EvalResult::Expr(Expr::xor(Expr::booly(x), y))
+            }
+            (EvalResult::Expr(x), EvalResult::Expr(y)) => EvalResult::Expr(Expr::xor(x, y)),
+        }
+    }
+}
+
+impl<'a> Not for EvalResult<'a> {
+    type Output = Self;
+    fn not(self) -> Self::Output {
+        match self {
+            EvalResult::Bool(x) => EvalResult::Bool(!x),
+            EvalResult::Expr(x) => EvalResult::Expr(Expr::not(x)),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
@@ -89,6 +159,13 @@ impl<'a> Expr<'a> {
     }
     pub fn falsey() -> Box<Self> {
         Box::new(Self::False())
+    }
+    pub fn booly(p: bool) -> Box<Self> {
+        if p {
+            Expr::truth()
+        } else {
+            Expr::falsey()
+        }
     }
     pub fn xor(p: Box<Self>, q: Box<Self>) -> Box<Self> {
         Box::new(Self::Xor(p, q))
@@ -265,10 +342,13 @@ impl<'a> Expr<'a> {
         }
     }
 
-    pub fn eval(&self, vals: &HashMap<Var<'a>, bool>) -> bool {
+    pub fn eval(&self, vals: &HashMap<Var<'a>, EvalResult<'a>>) -> EvalResult<'a> {
         match self {
             // Yes, right now let's just panic if not all vars are present.
-            Expr::Var(n) => vals[&n],
+            Expr::Var(n) => match vals.get(&n) {
+                Some(x) => x,
+                None => n,
+            },
             Expr::Not(n) => !n.eval(vals),
             Expr::And(x, y) => x.eval(vals) & y.eval(vals),
             Expr::Implication(x, y) => !x.eval(vals) | y.eval(vals),
@@ -279,12 +359,16 @@ impl<'a> Expr<'a> {
             }
             Expr::Or(x, y) => x.eval(vals) | y.eval(vals),
             Expr::Xor(x, y) => x.eval(vals) ^ y.eval(vals),
-            Expr::True() => true,
-            Expr::False() => false,
+            Expr::True() => EvalResult::Bool(true),
+            Expr::False() => EvalResult::Bool(false),
         }
     }
 
-    fn generate_vals_map(&self, vars: &Vec<Var<'a>>, vals: &Vec<bool>) -> HashMap<Var<'a>, bool> {
+    fn generate_vals_map(
+        &self,
+        vars: &Vec<Var<'a>>,
+        vals: &Vec<EvalResult<'a>>,
+    ) -> HashMap<Var<'a>, EvalResult<'a>> {
         vars.iter()
             .map(|x| x.clone())
             .zip(vals.iter().map(|x| *x))
@@ -294,9 +378,9 @@ impl<'a> Expr<'a> {
     fn truth_table_row(
         &self,
         vars: &Vec<Var<'a>>,
-        vals: &mut Vec<bool>,
+        vals: &mut Vec<EvalResult<'a>>,
         col: usize,
-    ) -> Vec<Vec<bool>> {
+    ) -> Vec<Vec<EvalResult<'a>>> {
         if vars.len() == col {
             let mut x = vals.clone();
             x.push(self.eval(&self.generate_vals_map(vars, vals)));
