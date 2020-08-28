@@ -12,5 +12,398 @@ deadlines.
 "constraints on processing power" does not mean "as fast as possible", but
 "as fast as consistently possible".)
 
-Please see [[weights.org]] for mor information about the progress and plans
-of this project.
+Since this is a relatively complex project I'll never actually be able
+to complete, I figured I'd break it down into chunks that might be somewhat
+doable. In the spirit of
+[[https://www.cis.upenn.edu/~bcpierce/papers/fj-toplas.pdf][Featherweight
+Java]] and [[https://arxiv.org/pdf/2005.11710.pdf][Featherweight Go]], those
+chunks are named after boxing weight classes.
+
+- [[#flyweight][Flyweight]] - Basic logical deductions
+- [[#bantamweight][Bantamweight]] - Algebraic Types and First Order Logic
+- [[#featherweight][Featherweight]] - Polymorphism and functions, no recursion
+- [[#lightweight][Lightweight]] - Dependent types and recursion
+- [[#welterweight][Welterweight]] - Structural Typing
+- [[#middleweight][Middleweight]] - Substructural Typing
+- [[#cruiserweight][Cruiserweight]] - Integers
+- [[#heavyweight][Heavyweight]] - Device Setup and Optimizations
+
+There are, however, things that will need to be done in a seperate
+initiative, mainly real-time constraints inforced via worst-case cycle
+counts. Also floating point. Floating point gets into this area of language
+features that may be processor dependent, and not just parameters like "max stack
+size", so I would like to give them careful thought only once I have a
+language to actually think about. (Ditto for BCD numbers and all
+multiplication and division.)
+
+* Flyweight
+#+BEGIN_COMMENT
+So, apparently org-ruby doesn't do links properly and the only way to do an
+internal link is to  "guess" the anchor that's going to be generated. For
+some semblance of sanity, though, I'm still going to define those anchors.
+See https://gist.github.com/will-henney/d8564133e07e546789c0 which is from
+_2014_ -_-
+#+END_COMMENT
+:PROPERTIES:
+:CUSTOM_ID: flyweight
+:END:
+** Goals
+*** Boolean Variables
+*** Constraints
+The clauses in the constraint are "AND"ed together. E.g.
+#+BEGIN_SRC
+x
+y
+#+END_SRC
+is "x AND y" while
+
+#+BEGIN_SRC
+x + y
+z
+#+END_SRC
+is "(x XOR y) AND z". Internally this will be converted into
+    [[https://en.wikipedia.org/wiki/Conjunctive_normal_form][CNF]].
+
+Supported operations are & (and), + (xor), | (or), ~ (not), -> (consequence),
+    <-> (biconditional).
+
+The set of constraints must be proven solvable at compile-time for all
+inputs.
+
+(I'm not 100% sure bound and free are the correct terms here. Let me find
+better ones.)
+
+Bound variables are ones that must always be set within a transaction.
+
+Free variables may only ever be the result of a transaction and may never
+appear within a transaction.
+
+Can we flag/warn redundant constraints?
+
+*** Transactions
+Transactions allow for the setting of variables that need to be computed
+from the constraints. Transactions must be provably solvable with a unique
+solution.
+
+All free variables affected by the bound variables set in the transaction
+must be set by the transaction. Free variables may not be referenced inside
+of a transaction. Interupts are disabled during transactions.
+
+*** Translation to C
+To simplify writing the backend, the code will be translated to C in
+order to be compiled into an executable.
+
+This will make it easier to compile for an arduino/AVR, as well as other
+microcontrollers.
+
+*** "Magic" IN and OUT vars
+To simplify testing, the IN and OUT vars will read from STDIN and write to
+STDOUT.
+
+** Samples
+#+BEGIN_SRC
+x := false
+y := false
+z := false
+
+constraints(bound=x,y; free=z) {
+ x + y + z
+}
+
+run {
+  z <- transaction {
+    x <- IN
+    y <- IN
+  }
+  OUT <- z
+}
+#+END_SRC
+* Bantamweight
+:PROPERTIES:
+:CUSTOM_ID: bantamweight
+:END:
+** Goals
+*** Enums / Sum Types / match
+*** Structs / Product Types
+*** Evaluate enum constraints and solve for free enum variables
+*** Evaluate predicates and rules
+This includes finding all applicable and intermediary predicates based
+on the given facts.
+
+Facts must be unqiue.
+
+When predicate parameters are named, the names must always be used in
+facts.
+
+Only predicates declared can be used.
+
+This should be roughly equivalent to First Order Logic.
+
+** Samples
+#+BEGIN_SRC
+
+enum SignalIndication {
+    Clear,
+    Approach,
+    Stop
+}
+
+struct Signal {
+    SignalIndication
+}
+
+
+enum Occupancy {
+    Unoccupied,
+    Occupied,
+    Unknown,
+}
+
+struct Track {
+    Occupancy
+}
+
+enum SwitchDirection {
+    Straight,
+    Diverted,
+    Unknown,
+}
+
+struct Switch {
+      SwitchDirection
+}
+
+
+T1 <- Track{}
+T2 <- Track{}
+T3 <- Track{}
+T4 <- Track{}
+
+Sw1 <- Switch{}
+
+Sg1 <- Signal{}
+
+predicates {
+    connected(Track, Track)
+    protects(Signal, Track)
+    connected_via_switch(Track, Switch, _Straigt: Track, _Diverted: Track)
+}
+rules {
+    connected($TA, $TB) :- connected_via($TA, $SW, $TB, $TC) & SwitchDirection::Straight($SW)
+    connected($TA, $TC) :- connected_via($TA, $SW, $TB, $TC) & SwitchDirection::Diverted($SW)
+    connected($TA, $TB) :- connected($TB, $A)
+
+}
+facts {
+    connected(T1, T2)
+    connected_via(T2, Sw1, _Straigt=T3, _Diverted=T4)
+    protects(Sg1, T2)
+}
+constraints (bound=T1,T2,T3,T4,Sw1;free=Sg1) {
+    Occupied($T) & protects($SG, $T) -> Stop($SG)
+    Occupied($TA) & connected($TA, $TB) & protects($SG, $TB) & ~Stop($SG) -> Approach($SG)
+}
+run {
+    Sg1 = transaction {
+        T1.Occupancy <- IN
+        T2.Occupancy <- IN
+        T3.Occupancy <- IN
+        T4.Occupancy <- IN
+        Sw1.SwitchDirection <- IN
+    }
+    # Like Prolog, if, for instance
+    #   Unoccupied(T1)
+    #   Unoccupied(T2)
+    #   Occupancy(T3)
+    #   Unoccupied(T4)
+    #   Straight(Sw1)
+    # then, the system will be expected to figure out that...
+    #
+    #
+    # connected(T2, $TB) :- connected_via(T2, $SW, $TB, $TC) & SwitchDirection::Straight($SW)
+    # connected(T2, $TC) :- connected_via(T2, $SW, $TB, $TC) & SwitchDirection::Diverted($SW)
+    #
+    # connected(T2, $TB) :- connected_via(T2, Sg1, T3, T4) & SwitchDirection::Straight(Sg1)
+    # connected(T2, $TC) :- connected_via(T2, Sg1, T3, T4) & SwitchDirection::Diverted(Sg1)
+    #
+    # connected(T2, T3) :- connected_via(T1, Sg1, T3, T4) & SwitchDirection::Straight(Sg1)
+    #
+    # connected(T3, $TB) :- connected($TB, T3)
+    #
+    # connected(T3, T2) :- connected(T2, T3)
+    #
+    # Occupied(T3) & protects($SG, $T) -> Stop($SG)
+    # Occupied(T3) & connected(T3, $TB) & protects($SG, $TB) & ~Stop($SG) -> Approach($SG)
+    #
+    # There are no fact that match protects($SG, T3) and so it gets dropped
+    # Occupied(T3) & connected(T3, T2) & protects($SG, T2) & ~Stop($SG) -> Approach($SG)
+    #
+    # Occupied(T3) & connected(T3, T2) & protects(Sg1, T2) & ~Stop(Sg1) -> Approach(Sg1)
+    #
+    # Since, Stop(Sg1) isn't backed by any fact or rule, ~Stop(Sg1) is true.
+    # Since, Sg1, is a free variable, this roughly becomes:
+    #   What value of Sg1 could make true -> Approach(Sg1)
+    # and so, a value for the Indication of Sg1 is set to Approach to make
+    # the constraint true.
+}
+#+END_SRC
+* Featherweight
+:PROPERTIES:
+:CUSTOM_ID: featherweight
+:END:
+** Goals
+*** Local variables
+Variable shadowing is disallowed.
+*** Structs
+*** Traits
+*** Polymorphic functions
+Recursion is disallowed in this version as it cannot be known if it will terminate.
+*** Nominal Type System
+** Samples
+#+BEGIN_SRC
+
+// <, >, =, <=, and >= will be infered.
+// Returning None will cause those to return false.
+trait Comparable[[_T]] {
+   fn op<=>(x: _T, y: _T) => Trichotomy?
+}
+
+struct Point[[_V]] {
+   x: _V
+   y: _V
+}
+
+impl Comparable[[Point]] {
+   // It's an ordering, anyway
+   fn op<=>(a: Point, b: Point) => Trichotomy? {
+      if a.x < b.y {
+          Trichotomy::LessThan
+      } elif a.y < b.y {
+          Trichotomy::GreaterThan
+      } else {
+          Trichotomy::Equal
+      }
+   }
+}
+
+run {
+   p1 <- Point{x <- 1, y <- 2}
+   p2 <- Point{x <- 2, x <- 1}
+   match p1 <=> p2 {
+      Trichotomy::LessThan {
+          OUT <- False
+          OUT <- True
+      }
+      Trichotomy::GreaterThan {
+          OUT <- True
+          OUT <- False
+      }
+      Trichotomy::Equal {
+          OUT <- True
+          OUT <- True
+      }
+      None {
+          OUT <- False
+          OUT <- False
+      }
+   }
+}
+#+END_SRC
+* Lightweight
+:PROPERTIES:
+:CUSTOM_ID: lightweight
+:END:
+** Goals
+*** Dependently typed functions, methods, and structs with bounded recursion
+*** Arrays
+Arrays can be viewed as a special case of a dependently typed structure, but
+with some additional syntax for accessing elements directly without
+having to recurse through the structure.
+#+BEGIN_SRC
+struct[[_T, #N]] Array{
+    v T
+    rest Array[[#T, #_P(#N)]]
+}
+struct[[_T, 0]] Array{
+    v _T
+}
+
+fn map(a: Array[[_T, #N]], f: _T -> _S) -> Array[[_S, #N]] {
+    match #N {
+      0 => Array{v <- f(a.v)}
+      _ => Array{v <- f(a.v), rest <- map(a.rest, f)}
+    }
+}
+
+fn fib[[#N]] -> (int, int) {
+    match #N {
+      0      => 1, 0
+      #_S(0) => 1, 1
+      _      => {
+            x, y <- fib[[#_P(#N)]]
+            x + y, x
+          }
+    }
+}
+#+END_SRC
+* Welterweight
+:PROPERTIES:
+:CUSTOM_ID: welterweight
+:END:
+** Goals
+*** Structural type system for traits and structs
+* Middleweight
+:PROPERTIES:
+:CUSTOM_ID: middleweight
+:END:
+** Goals
+*** Linear type system
+*** Array slices
+Slices fall in with the lineary type system as they allow access a
+segment of memory without allowing for it to be modified.
+* Cruiserweight
+:PROPERTIES:
+:CUSTOM_ID: cruiserweight
+:END:
+** Goals
+*** Integer addition and subtraction
+*** Integer ranges and constraints
+*** Byte type
+*** Table Lookup Functions
+This would only work with enum types, and very similar to how matching
+does.
+#+BEGIN_SRC
+enum State {
+      Moving,
+      Stop,
+}
+
+enum Input1 {
+      None,
+      Accelerator,
+      Brake,
+}
+fn next_state(c: State, i: Input1) -> o: State {
+      | c      | i           || o      |
+      +---------------------------------
+      | Moving | Break       || Stop   |
+      | Moving | _           || Moving |
+      | Stop   | Accelerator || Moving |
+      | Stop   | _           || Stop   |
+}
+#+END_SRC
+* Heavyweight
+:PROPERTIES:
+:CUSTOM_ID: heavyweight
+:END:
+** Goals
+*** Direct Memory Access
+*** Direct Register Access
+*** Tail Call Optimization
+*** Annotations
+#+BEGIN_SRC
+constraints {
+      @title 49 CFR § 236.205 (a) Signal control circuits
+      Occupied($A) & protects($A, $D, $S) => Stop($S)
+}
+#+END_SRC
