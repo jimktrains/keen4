@@ -248,9 +248,12 @@ run {
 :CUSTOM_ID: featherweight
 :END:
 ** Goals
+*** Local variables
+Variable shadowing is disallowed.
+*** Structs
 *** Traits
-*** Polymorphic functions, methods, and structs
-Recursion is disallowed.
+*** Polymorphic functions
+Recursion is disallowed in this version as it cannot be known if it will terminate.
 *** Nominal Type System
 ** Samples
 #+BEGIN_SRC
