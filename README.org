@@ -70,13 +70,9 @@ Supported operations are & (and), + (xor), | (or), ~ (not), -> (consequence),
 The set of constraints must be proven solvable at compile-time for all
 inputs.
 
-(I'm not 100% sure bound and free are the correct terms here. Let me find
-better ones.)
+Bound variables are ones that are set by/bound to a constraint.
 
-Bound variables are ones that must always be set within a transaction.
-
-Free variables may only ever be the result of a transaction and may never
-appear within a transaction.
+Free variables appear within a constraint, but not changed by it.
 
 Can we flag/warn redundant constraints?
 
@@ -85,20 +81,25 @@ Transactions allow for the setting of variables that need to be computed
 from the constraints. Transactions must be provably solvable with a unique
 solution.
 
-All free variables affected by the bound variables set in the transaction
-must be set by the transaction. Free variables may not be referenced inside
-of a transaction. Interupts are disabled during transactions.
+All bound variables affected by the free variables set in the transaction
+must be set by the transaction. Bound variables may not be referenced inside
+of a transaction. Interupts are disabled during transactions. If/when
+muti-core support is provided, access to all free and bound variables will
+need to happen via a mutex (or maybe even some version of MVCC?).
 
 *** Translation to C
 To simplify writing the backend, the code will be translated to C in
-order to be compiled into an executable.
-
-This will make it easier to compile for an arduino/AVR, as well as other
-microcontrollers.
+order to be compiled into an executable. This will make it easy for me
+to inspect the output at first. While codegen is one of the last tasks
+in the document, I'd like to address it sooner if possible. The C backend
+will always exist, but may not support things like deadlines and interrupts
+with an approximate frequency.
 
 *** "Magic" IN and OUT vars
 To simplify testing, the IN and OUT vars will read from STDIN and write to
-STDOUT.
+STDOUT as the appropriate. These will be removed once I get to working on
+codegen and have a means of setting up a serial port (or mocking some
+similar interface in C).
 
 ** Samples
 #+BEGIN_SRC
@@ -106,7 +107,7 @@ x := false
 y := false
 z := false
 
-constraints(bound=x,y; free=z) {
+constraints(free=x,y; bound=z) {
  x + y + z
 }
 
@@ -123,7 +124,7 @@ run {
 :CUSTOM_ID: bantamweight
 :END:
 ** Goals
-*** Enums / Sum Types / match
+*** Enums / Sum Types / match / ?
 *** Structs / Product Types
 *** Evaluate enum constraints and solve for free enum variables
 *** Evaluate predicates and rules
@@ -199,7 +200,7 @@ facts {
     connected_via(T2, Sw1, _Straigt=T3, _Diverted=T4)
     protects(Sg1, T2)
 }
-constraints (bound=T1,T2,T3,T4,Sw1;free=Sg1) {
+constraints (free=T1,T2,T3,T4,Sw1;bound=Sg1) {
     Occupied($T) & protects($SG, $T) -> Stop($SG)
     Occupied($TA) & connected($TA, $TB) & protects($SG, $TB) & ~Stop($SG) -> Approach($SG)
 }
@@ -315,6 +316,7 @@ run {
 :END:
 ** Goals
 *** Dependently typed functions, methods, and structs with bounded recursion
+*** Tail Call Optimization
 *** Arrays
 Arrays can be viewed as a special case of a dependently typed structure, but
 with some additional syntax for accessing elements directly without
@@ -341,6 +343,8 @@ fn fib[[#N]] -> (int, int) {
       #_S(0) => 1, 1
       _      => {
             x, y <- fib[[#_P(#N)]]
+            # This would ideally be TCO since it only depends on the result
+            # of the function call.
             x + y, x
           }
     }
@@ -366,9 +370,112 @@ segment of memory without allowing for it to be modified.
 :CUSTOM_ID: cruiserweight
 :END:
 ** Goals
-*** Integer addition and subtraction
-*** Integer ranges and constraints
 *** Byte type
+*** Integer addition and subtraction
+**** Integer Types:
+    - Signed
+    - Unsigned
+    - Wrapped Signed
+    - Wrapped Unsigned
+    - Saturated Signed
+    - Saturated Unsigned
+#+BEGIN_SRC
+si sint8
+
+si <- match si <-? 129 {
+      Some(x): x
+      Err(_): 5
+}
+# si = 5
+
+ss <-?? 129 # returns the error from the function
+
+ui uint8
+si <- match si <-? -1 {
+      Some(x): x
+      Err(_): 5
+}
+# si = 5
+
+ss <-?? -1 # returns the error from the function
+
+wsi wsint8
+wsi <- 129 # -127
+
+wui wuint8
+wui <- -1 # 255
+
+ssi ssint8
+ssi <- 129 # 127
+sui suint8
+sui <- -1 # 0
+#+END_SRC
+*** Feature flags providable by library or compiler
+**** Fixed-Point Types
+    - Signed
+    - Unsigned
+    - Wrapped Signed
+    - Wrapped Unsigned
+    - Saturated Signed
+    - Saturated Unsigned
+**** BCD Types
+    - Signed
+    - Unsigned
+    - Wrapped Signed
+    - Wrapped Unsigned
+    - Saturated Signed
+    - Saturated Unsigned
+**** Integer multiplication and division
+**** Fixed-Point Types with Accumulated Error Bounds
+**** Floating-point types
+**** Floating-point types with Accumulated Error Bounds
+*** Integer ranges and constraints
+    Range constraints may be declared on an integer type. For signed and
+    unsigned integers, on each assignment,
+    an Option is returned, with None representing an out-of-bounds value. For
+    Saturated integers, the maximal or minimal end of the range is returned.
+
+#+BEGIN_SRC
+x uint8[0,10)
+y suint[0,10)
+z wuint[0,10)
+
+x <- match x <-? 11 {
+    case Some(x): x
+    case Err(_): 5
+}
+
+x <-?? 12 # Returns the error from the function
+
+x <-?? 5
+
+y <- 12 # y = 9
+
+z <- 12 # y = 2
+
+# Use in function signatures
+fn UpdateDisplay(msgs byte[16][N], msg_idx uint[0, N)) {
+
+}
+
+fn
+#+END_SRC
+*** Units
+    Integer types may be qualified by a unit. Units may only be added or
+    subtracted from compatible units. Any units may be multiplied and
+    divided. You may define new units.
+#+BEGIN_SRC
+    g <- -32.17405:ft/(sec*sec)
+    speed_0 <- 1:ft/sec
+    speed_2 <- speed_0 + g * 2:sec
+    pos_0 <- 100:ft
+    pos_2 <- pos_0 + (speed_0 * 2:sec) + ((1/2) * g * (2:sec * 2:sec))
+
+    unit position
+    x <- PORTB::uint8:position
+    ppd <- 128/360:position/deg
+    deg_turned <- x / ppd
+#+END_SRC
 *** Table Lookup Functions
 This would only work with enum types, and very similar to how matching
 does.
@@ -383,7 +490,7 @@ enum Input1 {
       Accelerator,
       Brake,
 }
-fn next_state(c: State, i: Input1) -> o: State {
+table next_state(c: State, i: Input1) -> o: State {
       | c      | i           || o      |
       +---------------------------------
       | Moving | Break       || Stop   |
@@ -397,13 +504,56 @@ fn next_state(c: State, i: Input1) -> o: State {
 :CUSTOM_ID: heavyweight
 :END:
 ** Goals
-*** Direct Memory Access
-*** Direct Register Access
-*** Tail Call Optimization
+*** Code-gen
+**** Parts
+***** Instruction Generator
+      Requires:
+      - Instruction Set Architecture
+      - Register map
+      - I/O Memory Map
+      - Feature Flag Libraries
+***** Constraint enforcement
+      Requires:
+        - ISA
+        - Clock Frequency
+        - RAM size
+**** Goals
+    - ATmega328 (avr5)
+    - ATtiny85 (avr2.5)
+    - STM32F3 (Cortex ®-M4 (with FPU and DSP instructions))
+    - STM32F0 (Cortex ®-M0)
+*** Memory-mapped I/O
+    For system initialization and general I/O
 *** Annotations
+    Annotations can add additional information for documentation or for the
+    compiler.
+
+    - ~@ref~ :: Generic reference text. May be placed multiple times.
+    - ~@interrupt~ :: Interrupt handler for the given interrupt (or signal on
+      a *nix system). Programs may not have interrupts and deadlines.
+    - ~@timer~ :: Special case of ~@interrupt~ that can set the timer as well
+    - ~@approximate-frequency~ :: Approximate frequency this interrupt handler is
+      expected to execute at. This is used to build execution constraints on
+      transactions. May only be declared once per function. Requires ~@interrupt~.
+    - ~@deadline~ :: Deadline for when this function call needs to be made
+      again. Programs may not have interrupts and deadlines.
 #+BEGIN_SRC
 constraints {
-      @title 49 CFR § 236.205 (a) Signal control circuits
-      Occupied($A) & protects($A, $D, $S) => Stop($S)
+      @ref Title 49 CFR § 236.205 (a) Signal control circuits
+      Occupied($A) & protects($A, _, $S) => Stop($S)
+}
+
+const usi1_baud 9600:baud
+
+@interrupt USI_OVF
+# These are all equivilent
+@approximate-frequency 833:usec
+@approximate-frequency 833:μsec
+@approximate-frequency 0.833:msec
+@approximate-frequency 0.000833:sec
+@approximate-frequency 1200:Hz
+@approximate-frequency 1.2:kHz
+@approximate-frequency (usi1_baud * 1:byte)
+fn read_usart() {
 }
 #+END_SRC
