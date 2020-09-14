@@ -521,6 +521,7 @@ table next_state(c: State, i: Input1) -> o: State {
     - ATmega328 (avr5)
     - ATtiny85 (avr2.5)
     - STM32F3 (Cortex ®-M4 (with FPU and DSP instructions))
+    - Freedom E310 (RV32I+M+A)
     - STM32F0 (Cortex ®-M0)
 *** Memory-mapped I/O
     For system initialization and general I/O
