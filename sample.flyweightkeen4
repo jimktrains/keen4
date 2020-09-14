@@ -12,7 +12,7 @@ SA_appr <- false
 
 SB_stop <- true
 
-constraints(bound=A_occ, B_occ ; free=SA_stop,SA_appr, SB_stop, SB_appr) {
+constraints(bound=SA_stop,SA_appr, SB_stop, SB_appr) {
   A_occ -> SA_stop
   B_occ -> SB_stop
   C_occ -> SC_stop
