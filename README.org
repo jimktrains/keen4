@@ -76,7 +76,31 @@ Free variables appear within a constraint, but not changed by it.
 
 Can we flag/warn redundant constraints?
 
-*** Transactions
+Bound variables that are/end-up-being/shown-to-be tautologies or
+contradictions are disallowed. E.g. If a bound variable is always
+`true` or `false` "what is it even doing"?
+
+**** Solver
+
+A full SAT-solver feels a bit overkill for the size of inputs
+this will normally see? It also feels like it might be difficult
+to build one for systems big enough to require it, while also
+fitting into a small memory footprint and running in a sensible
+amount of bounded and known time.
+
+A naïve solver (for all values of all free variables, check if
+there exists a unique set of values for the bound variables) might
+be the best approach out-the-gate. I'm not entirly sure that this
+won't turn into a linear programming problem later on depending on
+how these constraints get used, and besides, the naïve solver can
+always be ripped out and replaced if need-be.
+
+The compiler will try to condense the number of variables and clauses
+given to the solver by condensing any sub-tree that doesn't contain a
+bound variable into a single variable. Since these contain only free
+variables, they are effectivly constant at solver time.
+
+**** Transactions
 Transactions allow for the setting of variables that need to be computed
 from the constraints. Transactions must be provably solvable with a unique
 solution.
@@ -100,6 +124,7 @@ To simplify testing, the IN and OUT vars will read from STDIN and write to
 STDOUT as the appropriate. These will be removed once I get to working on
 codegen and have a means of setting up a serial port (or mocking some
 similar interface in C).
+
 
 ** Samples
 #+BEGIN_SRC
