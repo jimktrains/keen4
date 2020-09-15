@@ -285,6 +285,68 @@ Variable shadowing is disallowed.
 *** Polymorphic functions
 Recursion is disallowed in this version as it cannot be known if it will terminate.
 *** Nominal Type System
+*** Table Lookup Functions
+This would only work with enum types, and very similar to how matching
+does.
+#+BEGIN_SRC
+enum State {
+      Moving,
+      Stop,
+}
+
+enum Input1 {
+      None,
+      Accelerator,
+      Brake,
+}
+table next_state(c: State, i: Input1) -> o: State {
+      | c      | i           || o      |
+      +---------------------------------
+      | Moving | Break       || Stop   |
+      | Moving | _           || Moving |
+      | Stop   | Accelerator || Moving |
+      | Stop   | _           || Stop   |
+}
+#+END_SRC
+*** Integer addition and subtraction
+**** Integer Types:
+    - Signed
+    - Unsigned
+    - Wrapped Signed
+    - Wrapped Unsigned
+    - Saturated Signed
+    - Saturated Unsigned
+#+BEGIN_SRC
+si sint8
+
+si <- match si <-? 129 {
+      Some(x): x
+      Err(_): 5
+}
+# si = 5
+
+ss <-?? 129 # returns the error from the function
+
+ui uint8
+si <- match si <-? -1 {
+      Some(x): x
+      Err(_): 5
+}
+# si = 5
+
+ss <-?? -1 # returns the error from the function
+
+wsi wsint8
+wsi <- 129 # -127
+
+wui wuint8
+wui <- -1 # 255
+
+ssi ssint8
+ssi <- 129 # 127
+sui suint8
+sui <- -1 # 0
+#+END_SRC
 ** Samples
 #+BEGIN_SRC
 
@@ -396,45 +458,6 @@ segment of memory without allowing for it to be modified.
 :END:
 ** Goals
 *** Byte type
-*** Integer addition and subtraction
-**** Integer Types:
-    - Signed
-    - Unsigned
-    - Wrapped Signed
-    - Wrapped Unsigned
-    - Saturated Signed
-    - Saturated Unsigned
-#+BEGIN_SRC
-si sint8
-
-si <- match si <-? 129 {
-      Some(x): x
-      Err(_): 5
-}
-# si = 5
-
-ss <-?? 129 # returns the error from the function
-
-ui uint8
-si <- match si <-? -1 {
-      Some(x): x
-      Err(_): 5
-}
-# si = 5
-
-ss <-?? -1 # returns the error from the function
-
-wsi wsint8
-wsi <- 129 # -127
-
-wui wuint8
-wui <- -1 # 255
-
-ssi ssint8
-ssi <- 129 # 127
-sui suint8
-sui <- -1 # 0
-#+END_SRC
 *** Feature flags providable by library or compiler
 **** Fixed-Point Types
     - Signed
@@ -500,29 +523,6 @@ fn
     x <- PORTB::uint8:position
     ppd <- 128/360:position/deg
     deg_turned <- x / ppd
-#+END_SRC
-*** Table Lookup Functions
-This would only work with enum types, and very similar to how matching
-does.
-#+BEGIN_SRC
-enum State {
-      Moving,
-      Stop,
-}
-
-enum Input1 {
-      None,
-      Accelerator,
-      Brake,
-}
-table next_state(c: State, i: Input1) -> o: State {
-      | c      | i           || o      |
-      +---------------------------------
-      | Moving | Break       || Stop   |
-      | Moving | _           || Moving |
-      | Stop   | Accelerator || Moving |
-      | Stop   | _           || Stop   |
-}
 #+END_SRC
 * Heavyweight
 :PROPERTIES:
