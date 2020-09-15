@@ -1,0 +1,33 @@
+use crate::ast::nodes::{Expr, Constraints};
+
+grammar;
+
+pub Term: Expr<'input> = {
+  <s:Id> => Expr::Term(s),
+  "(" <t:Expr> ")" => t,
+  "~" <t:Term> => Expr::<'input>::Not(Box::new(t)),
+}
+
+pub Expr: Expr<'input> = {
+  Term                    => <>,
+  <l:Expr> "+"   <r:Term> => Expr::Xor(Box::new(l), Box::new(r)),
+  <l:Expr> "&"   <r:Term> => Expr::And(Box::new(l), Box::new(r)),
+  <l:Expr> "|"   <r:Term> => Expr::Or(Box::new(l), Box::new(r)),
+  <l:Expr> "->"  <r:Term> => Expr::Implication(Box::new(l), Box::new(r)),
+  <l:Expr> "<->" <r:Term> => Expr::Biconditional(Box::new(l), Box::new(r)),
+}
+
+pub Id : &'input str = <s:r"[a-z0-9_]+"> => s;
+
+pub Constraints: Constraints<'input> = "constraint" "(" <i:List<Id>> ")" "{" <e:List<Expr>> "}" => Constraints(i, e);
+
+List<T> : Vec<T> = {
+  <v:(<T> ",")*> <e:T?> => match e {
+        None => v,
+        Some(e) => {
+            let mut v = v;
+            v.push(e);
+            v
+        }
+    }
+};
