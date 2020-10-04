@@ -17,9 +17,9 @@ pub Expr: Expr<'input> = {
   <l:Expr> "<->" <r:Term> => Expr::Biconditional(Box::new(l), Box::new(r)),
 }
 
-pub Id : &'input str = <s:r"[a-z0-9_]+"> => s;
+pub Id : &'input str = <s:r"[a-zA-Z0-9_]+"> => s;
 
-pub Constraints: Constraints<'input> = "constraint" "(" <i:List<Id>> ")" "{" <e:List<Expr>> "}" => Constraints(i, e);
+pub Constraints: Constraints<'input> = "constraint" "(" <i:List<Id>> ")" "{" <e:List<Expr>> "}" => Constraints{bound:i, exprs:e};
 
 List<T> : Vec<T> = {
   <v:(<T> ",")*> <e:T?> => match e {
