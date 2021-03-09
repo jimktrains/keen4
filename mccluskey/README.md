@@ -11,5 +11,44 @@ Sample Output
     Distributed: d!ebde + d!ebdc + a
     SAST: (d!ebde) + (d!ebdc) + (a)
     Ord:  (a) + (bcdd!e) + (bdd!ee)
-    Simp: (a) + (bcd!e)
+    Simp: (a) + (bcd!e) + (bd!e)
+    Terms: ["a", "b", "c", "d", "e"]
+    MN: [
+        (
+            1,
+            [
+                [
+                    One,
+                    DontCare,
+                    DontCare,
+                    DontCare,
+                    DontCare,
+                ],
+            ],
+        ),
+        (
+            2,
+            [
+                [
+                    DontCare,
+                    One,
+                    DontCare,
+                    One,
+                    Zero,
+                ],
+            ],
+        ),
+        (
+            3,
+            [
+                [
+                    DontCare,
+                    One,
+                    One,
+                    One,
+                    Zero,
+                ],
+            ],
+        ),
+    ]
 
