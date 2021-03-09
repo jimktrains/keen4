@@ -1,8 +1,13 @@
 #![feature(iterator_fold_self)]
 #![feature(type_ascription)]
 #![feature(box_patterns)]
+#![feature(log_syntax)]
+#![feature(trace_macros)]
+
+//trace_macros!(true);
 
 pub mod ast;
+pub mod bl;
 #[macro_use]
 extern crate lalrpop_util;
 
@@ -63,29 +68,30 @@ fn main() {
     let x = x.unwrap();
     for (i, ftt) in x.free_truth_tables().iter().enumerate() {
         for tt in ftt {
-            println!("\t{:?}/{:?} <-> {:?}", x.exprs[i], tt.free_map, tt.result)
+            println!("\t{:?}", bl::astToLogic(&x.exprs[i]));
+            //        println!("\t{:?}/{:?} <-> {:?}", x.exprs[i], tt.free_map, tt.result);
         }
     }
-    if let Err(errs) = x.assert_bound_used() {
-        for e in errs {
-            println!("{}", e)
-        }
-    }
-    println!();
+    //if let Err(errs) = x.assert_bound_used() {
+    //    for e in errs {
+    //        println!("{}", e)
+    //    }
+    //}
+    //println!();
 
-    let parser = keen4::ConstraintsParser::new();
-    let x = parser.parse(
-        "constraint(x){
-        x+y,
-    }",
-    );
-    assert!(x.is_ok());
-    let x = x.unwrap();
-    println!("{:?}", x);
-    if let Err(errs) = x.assert_bound_used() {
-        for e in errs {
-            println!("{}", e)
-        }
-    }
-    println!();
+    //let parser = keen4::ConstraintsParser::new();
+    //let x = parser.parse(
+    //    "constraint(x){
+    //    x+y,
+    //}",
+    //);
+    //assert!(x.is_ok());
+    //let x = x.unwrap();
+    //println!("{:?}", x);
+    //if let Err(errs) = x.assert_bound_used() {
+    //    for e in errs {
+    //        println!("{}", e)
+    //    }
+    //}
+    //println!();
 }
