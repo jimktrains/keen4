@@ -12,9 +12,28 @@ pub enum Expr {
     False,
 }
 
+// So, I can't just call a.cmp(b) == Ordering::Equal because I'm considering
+// Not(a) and a as Equal for the purposes of sorting. Is that a good idea?
+// Probably not :( I need to ensure they end up togher after a sort and
+// havn't thought enough about it otherwise.
 impl PartialEq for Expr {
     fn eq(&self, other: &Self) -> bool {
-        self.cmp(other) == Ordering::Equal
+        match (self, other) {
+            (Expr::True, Expr::True) => true,
+            (Expr::False, Expr::False) => true,
+            (Expr::Var(a), Expr::Var(b)) => a == b,
+            (Expr::Not(box a), Expr::Not(box b)) => a == b,
+            (Expr::And(a), Expr::And(b)) | (Expr::Or(a), Expr::Or(b)) => {
+                for (i, j) in a.iter().zip(b.iter()) {
+                    let k = i.cmp(j);
+                    if k != Ordering::Equal {
+                        return false;
+                    }
+                }
+                true
+            }
+            _ => false,
+        }
     }
 }
 

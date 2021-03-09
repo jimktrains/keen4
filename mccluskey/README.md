@@ -1,9 +1,8 @@
 McCluskey
 =========
 
-I'm attempting to build out a McKluskey simplification of a binary
+I'm attempting to build out a McCluskey simplification of a binary
 expression. So far I simply have it building out the DNF.
-
 
 Sample Output
 
@@ -11,7 +10,7 @@ Sample Output
     Distributed: d!ebde + d!ebdc + a
     SAST: (d!ebde) + (d!ebdc) + (a)
     Ord:  (a) + (bcdd!e) + (bdd!ee)
-    Simp: (a) + (bcd!e) + (bd!e)
+    Simp: (a) + (bcd!e)
     Terms: ["a", "b", "c", "d", "e"]
     MN: [
         (
@@ -23,18 +22,6 @@ Sample Output
                     DontCare,
                     DontCare,
                     DontCare,
-                ],
-            ],
-        ),
-        (
-            2,
-            [
-                [
-                    DontCare,
-                    One,
-                    DontCare,
-                    One,
-                    Zero,
                 ],
             ],
         ),
@@ -51,4 +38,3 @@ Sample Output
             ],
         ),
     ]
-
