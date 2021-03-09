@@ -14,25 +14,7 @@ pub enum Expr {
 
 impl PartialEq for Expr {
     fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Expr::True, Expr::True) => true,
-            (Expr::False, Expr::False) => true,
-            (Expr::Var(a), Expr::Var(b)) => a.eq(b),
-            (Expr::Not(box a), Expr::Not(box b)) => a.eq(b),
-            (Expr::And(a), Expr::And(b)) => {
-                if a.len() != b.len() {
-                    return false;
-                }
-                for (i, j) in a.iter().zip(b.iter()) {
-                    let k = i.cmp(j);
-                    if k != Ordering::Equal {
-                        return false;
-                    }
-                }
-                true
-            }
-            (_, _) => false,
-        }
+        self.cmp(other) == Ordering::Equal
     }
 }
 
@@ -73,6 +55,23 @@ impl PartialOrd for Expr {
 }
 
 impl Expr {
+    pub fn terms(&self) -> Vec<String> {
+        match self {
+            Expr::True | Expr::False => vec![],
+            Expr::Var(a) => vec![a.clone()],
+            Expr::Not(a) => a.terms(),
+            Expr::And(v) | Expr::Or(v) => {
+                let mut v = v
+                    .iter()
+                    .map(|i| i.terms())
+                    .flatten()
+                    .collect::<Vec<String>>();
+                v.sort();
+                v.dedup();
+                v
+            }
+        }
+    }
     pub fn simplify(self) -> Box<Expr> {
         let me = self.clone();
         match self {

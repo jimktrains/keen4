@@ -1,6 +1,7 @@
 #![feature(box_patterns)]
 
 pub mod ast;
+pub mod mccluskey;
 pub mod sast;
 
 use ast::{distribute, var};
@@ -16,6 +17,10 @@ fn main() -> Result<(), String> {
     println!("Ord:  {}", e);
     let e = e.simplify();
     println!("Simp: {}", e);
+
+    println!("Terms: {:?}", e.terms());
+
+    println!("MN: {:#?}", mccluskey::build_number(&e)?);
 
     Ok(())
 }
