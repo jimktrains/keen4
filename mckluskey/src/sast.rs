@@ -2,7 +2,7 @@ use crate::ast;
 use std::cmp::Ordering;
 use std::fmt;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq)]
 pub enum Expr {
     And(Vec<Box<Expr>>),
     Or(Vec<Box<Expr>>),
@@ -10,6 +10,30 @@ pub enum Expr {
     Var(String),
     True,
     False,
+}
+
+impl PartialEq for Expr {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Expr::True, Expr::True) => true,
+            (Expr::False, Expr::False) => true,
+            (Expr::Var(a), Expr::Var(b)) => a.eq(b),
+            (Expr::Not(box a), Expr::Not(box b)) => a.eq(b),
+            (Expr::And(a), Expr::And(b)) => {
+                if a.len() != b.len() {
+                    return false;
+                }
+                for (i, j) in a.iter().zip(b.iter()) {
+                    let k = i.cmp(j);
+                    if k != Ordering::Equal {
+                        return false;
+                    }
+                }
+                true
+            }
+            (_, _) => false,
+        }
+    }
 }
 
 impl Ord for Expr {
@@ -27,7 +51,7 @@ impl Ord for Expr {
             (_, Expr::Var(_)) => Ordering::Greater,
             (Expr::Not(box a), b) => a.cmp(b),
             (a, Expr::Not(b)) => a.cmp(b),
-            (Expr::And(a), Expr::And(b)) => {
+            (Expr::And(a), Expr::And(b)) | (Expr::Or(a), Expr::Or(b)) => {
                 for (i, j) in a.iter().zip(b.iter()) {
                     let k = i.cmp(j);
                     if k != Ordering::Equal {
@@ -38,15 +62,6 @@ impl Ord for Expr {
             }
             (Expr::And(_), _) => Ordering::Less,
             (_, Expr::And(_)) => Ordering::Greater,
-            (Expr::Or(a), Expr::Or(b)) => {
-                for (i, j) in a.iter().zip(b.iter()) {
-                    let k = i.cmp(j);
-                    if k != Ordering::Equal {
-                        return k;
-                    }
-                }
-                Ordering::Equal
-            }
         }
     }
 }
@@ -58,6 +73,86 @@ impl PartialOrd for Expr {
 }
 
 impl Expr {
+    pub fn simplify(self) -> Box<Expr> {
+        let me = self.clone();
+        match self {
+            Expr::True | Expr::False | Expr::Var(_) => Box::new(me),
+            Expr::Not(v) => match v {
+                // Double Negation Law
+                box Expr::Not(w) => w,
+                _ => Box::new(me),
+            },
+            Expr::And(v) => {
+                // I'm not a huge fan of all the cloning going on here :(
+                let mut v = v
+                    .iter()
+                    .map(|i| i.clone().simplify())
+                    // Identity Law
+                    .filter(|i| **i != Expr::True)
+                    .collect::<Vec<Box<Expr>>>();
+                // Idempotent Law
+                v.dedup();
+                let mut it = v.iter();
+                if let Some(first) = it.next() {
+                    if **first == Expr::False {
+                        return Box::new(Expr::False);
+                    }
+                    let mut prev = first.clone();
+                    for i in it {
+                        // Annulment Law
+                        if **i == Expr::False {
+                            return Box::new(Expr::False);
+                        }
+                        // Complement Law
+                        if *i == Expr::Not(prev).simplify() {
+                            return Box::new(Expr::False);
+                        }
+                        prev = i.clone();
+                    }
+                }
+                // if we couldn't get element 0, the vec is empty, and
+                // we shoudl consider it as a True value.
+                else {
+                    return Box::new(Expr::True);
+                }
+                Box::new(Expr::And(v.to_vec()))
+            }
+            Expr::Or(v) => {
+                let mut v = v
+                    .iter()
+                    .map(|i| i.clone().simplify())
+                    // Identity Law
+                    .filter(|i| **i != Expr::False)
+                    .collect::<Vec<Box<Expr>>>();
+                // Idempotent Law
+                v.dedup();
+                let mut it = v.iter();
+                if let Some(first) = it.next() {
+                    if **first == Expr::True {
+                        return Box::new(Expr::True);
+                    }
+                    let mut prev = first.clone();
+                    for i in it {
+                        // Annulment Law
+                        if **i == Expr::True {
+                            return Box::new(Expr::True);
+                        }
+                        // Complement Law
+                        if *i == Expr::Not(prev).simplify() {
+                            return Box::new(Expr::True);
+                        }
+                        prev = i.clone();
+                    }
+                }
+                // if we couldn't get element 0, the vec is empty, and
+                // we shoudl consider it as a False value.
+                else {
+                    return Box::new(Expr::False);
+                }
+                Box::new(Expr::Or(v))
+            }
+        }
+    }
     pub fn order_terms(&mut self) {
         match self {
             Expr::True | Expr::False | Expr::Not(_) | Expr::Var(_) => (),

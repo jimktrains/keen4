@@ -127,7 +127,6 @@ pub fn distribute(e: Box<Expr>) -> Box<Expr> {
         // A(B + C) = AB + AC
         box Expr::And(s, t) => {
             match (s, t) {
-                // A(B+C) <=> AB + AC
                 (box Expr::Or(b, c), a) | (a, box Expr::Or(b, c)) => {
                     let a1 = a;
                     let a2 = a1.clone();
@@ -140,29 +139,25 @@ pub fn distribute(e: Box<Expr>) -> Box<Expr> {
                 (s, t) => distribute(s) * distribute(t),
             }
         }
-        box Expr::Or(s, t) => {
-            let s = distribute(s);
-            let t = distribute(t);
-            match (s, t) {
-                // This doesn't work Arithmetically, but does in Boolean Algebra.
-                // A + BC <=> (A+B)(A+C)
-                //        <=> AA + AC + BA + BC
-                //        <=> A + AC + BA + BC
-                //        <=> A(1 + C + B) + BC
-                //        <=> A(1) + BC
-                //        <=> A + BC
-                // (box Expr::Or(b, c), a) | (a, box Expr::Or(b, c)) => {
-                //     let a1 = a;
-                //     let a2 = a1.clone();
-                //     distribute(a1 + b) * distribute(a2 + c)
-                // }
-                // Annulment Law
-                (box Expr::True, _) => etrue(),
-                // Identity Law
-                (box Expr::False, a) | (a, box Expr::False) => a,
-                (s, t) => distribute(s) + distribute(t),
+        box Expr::Or(s, t) => match (s, t) {
+            // This doesn't work Arithmetically, but does in Boolean Algebra.
+            // A + BC <=> (A+B)(A+C)
+            //        <=> AA + AC + BA + BC
+            //        <=> A + AC + BA + BC
+            //        <=> A(1 + C + B) + BC
+            //        <=> A(1) + BC
+            //        <=> A + BC
+            (box Expr::Or(b, c), a) | (a, box Expr::Or(b, c)) => {
+                let a1 = a;
+                let a2 = a1.clone();
+                distribute(a1 + b) * distribute(a2 + c)
             }
-        }
+            // Annulment Law
+            (box Expr::True, _) => etrue(),
+            // Identity Law
+            (box Expr::False, a) | (a, box Expr::False) => a,
+            (s, t) => distribute(s) + distribute(t),
+        },
     };
     unsafe {
         DISTRIBUTE_LEVEL -= 1;
