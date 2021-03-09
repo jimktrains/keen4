@@ -1,4 +1,4 @@
-McKluskey
+McCluskey
 =========
 
 I'm attempting to build out a McKluskey simplification of a binary
