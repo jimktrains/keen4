@@ -1,8 +1,8 @@
 use crate::ast;
-
+use std::cmp::Ordering;
 use std::fmt;
 
-#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Expr {
     And(Vec<Box<Expr>>),
     Or(Vec<Box<Expr>>),
@@ -12,26 +12,57 @@ pub enum Expr {
     False,
 }
 
+impl Ord for Expr {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            (Expr::True, _) => Ordering::Less,
+            (_, Expr::True) => Ordering::Greater,
+            (Expr::False, _) => Ordering::Less,
+            (_, Expr::False) => Ordering::Greater,
+            (Expr::Var(a), Expr::Var(b)) => a.cmp(b),
+            (Expr::Var(_), Expr::And(b)) | (Expr::Var(_), Expr::Or(b)) => match b.get(0) {
+                Some(box b) => self.cmp(b),
+                None => Ordering::Less,
+            },
+            (_, Expr::Var(_)) => Ordering::Greater,
+            (Expr::Not(box a), b) => a.cmp(b),
+            (a, Expr::Not(b)) => a.cmp(b),
+            (Expr::And(a), Expr::And(b)) => {
+                for (i, j) in a.iter().zip(b.iter()) {
+                    let k = i.cmp(j);
+                    if k != Ordering::Equal {
+                        return k;
+                    }
+                }
+                Ordering::Equal
+            }
+            (Expr::And(_), _) => Ordering::Less,
+            (_, Expr::And(_)) => Ordering::Greater,
+            (Expr::Or(a), Expr::Or(b)) => {
+                for (i, j) in a.iter().zip(b.iter()) {
+                    let k = i.cmp(j);
+                    if k != Ordering::Equal {
+                        return k;
+                    }
+                }
+                Ordering::Equal
+            }
+        }
+    }
+}
+
+impl PartialOrd for Expr {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 impl Expr {
     pub fn order_terms(&mut self) {
         match self {
             Expr::True | Expr::False | Expr::Not(_) | Expr::Var(_) => (),
             Expr::And(v) | Expr::Or(v) => {
-                /*
-                 * Expr::And(v) | Expr::Or(v) => {
-                 *           - move occurs because `v` has type `&mut Vec<Box<sast::Expr>>`, which does not implement the `Copy` trait
-                 *     for i in v {
-                 *              -
-                 *              |
-                 *              `v` moved due to this implicit call to `.into_iter()`
-                 *              help: consider borrowing to avoid moving into the for loop: `&v`
-                 *
-                 *     v.sort();
-                 *     ^ value borrowed here after move
-                 *
-                 * note: this function takes ownership of the receiver `self`, which moves `v`
-                 */
-                for i in v {
+                for i in v.iter_mut() {
                     i.order_terms();
                 }
                 v.sort();

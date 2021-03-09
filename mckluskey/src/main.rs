@@ -14,7 +14,6 @@ fn main() -> Result<(), String> {
     println!("SAST: {}", e);
     e.order_terms();
     println!("SAST: {}", e);
-    println!("SAST: {:?}", e);
 
     Ok(())
 }
