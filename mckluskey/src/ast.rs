@@ -99,17 +99,8 @@ impl ops::Not for Box<Expr> {
     }
 }
 
-static mut DISTRIBUTE_LEVEL: usize = 0;
-static DISTRIBUTE_LOG: bool = false;
-
 pub fn distribute(e: Box<Expr>) -> Box<Expr> {
-    unsafe {
-        if DISTRIBUTE_LOG {
-            println!("{}Distribute:  {}", " ".repeat(DISTRIBUTE_LEVEL), e);
-        }
-        DISTRIBUTE_LEVEL += 1;
-    }
-    let x = match e {
+    match e {
         box Expr::Var(_) => e,
         box Expr::True => etrue(),
         box Expr::False => efalse(),
@@ -158,14 +149,7 @@ pub fn distribute(e: Box<Expr>) -> Box<Expr> {
             (box Expr::False, a) | (a, box Expr::False) => a,
             (s, t) => distribute(s) + distribute(t),
         },
-    };
-    unsafe {
-        DISTRIBUTE_LEVEL -= 1;
-        if DISTRIBUTE_LOG {
-            println!("{}Distributed: {}", " ".repeat(DISTRIBUTE_LEVEL), x);
-        }
     }
-    x
 }
 
 impl fmt::Display for Expr {
