@@ -31,7 +31,12 @@ fn main() -> Result<(), String> {
     println!("Terms: {:?}", e.terms());
 
     let t = mccluskey::minterms(&e)?;
-    println!("MN: {:?}", t);
+    for (zero_count, g) in t.iter() {
+        println!("{}", zero_count);
+        for i in g {
+            println!("\t{:02} {:?}", mccluskey::number(&i), i);
+        }
+    }
 
     let t10 = &t[0].1[0];
     let t11 = &t[0].1[1];
@@ -46,8 +51,8 @@ fn main() -> Result<(), String> {
     let mut it = t.iter();
     let first = it.next();
 
-    let mut res = vec![];
     if let Some(mut prev) = first {
+        let mut res = vec![];
         for i in it {
             if i.0 == prev.0 || i.0 == (prev.0 + 1) {
                 for j in &i.1 {
@@ -55,15 +60,60 @@ fn main() -> Result<(), String> {
                         let cnt = mccluskey::count_diff(&j, &k);
                         if cnt == 1 {
                             let diff = mccluskey::diff(&j, &k);
-                            res.push(diff);
+                            res.push((mccluskey::number(&j), mccluskey::number(&k), diff));
                         }
                     }
                 }
             }
             prev = i;
         }
+        for (i, j, k) in res.iter() {
+            println!("{:02},{:02}: {:?}", i, j, k);
+        }
+        let mut primes: Vec<usize> = vec![];
+        for _ in 0..res.len() {
+            '_i: for i in 0..res.len() {
+                for k in primes.iter() {
+                    if i == *k {
+                        println!("    i == k");
+                        continue '_i;
+                    }
+                }
+                let mut imp1_count = 0;
+                let mut imp2_count = 0;
+                // Starting from 0 otherwise this won't pick up
+                // the final entry or if the conflict happens earlier.
+                // I'm sure there are better ways to handle this that aren't
+                // quadratic -- it's late and I'm not thinking clearly.
+                '_j: for j in 0..res.len() {
+                    println!("{} {}", i, j);
+                    if i == j {
+                        println!("    i == j");
+                        continue;
+                    }
+                    for k in primes.iter() {
+                        if res[i].0 == res[*k].0 || res[i].0 == res[j].1 {
+                            imp1_count += 1;
+                        }
+                    }
+                    if res[i].0 == res[j].0 || res[i].0 == res[j].1 {
+                        println!("    i.0");
+                        imp1_count += 1;
+                    }
+                    if res[i].1 == res[j].0 || res[i].1 == res[j].1 {
+                        println!("    i.1");
+                        imp2_count += 1;
+                    }
+                }
+                if imp1_count == 0 || imp2_count == 0 {
+                    primes.push(i);
+                }
+            }
+        }
+        for i in primes {
+            println!("{} {:02},{:02}", i, res[i].0, res[i].1);
+        }
     }
-    println!("{:?}", res);
 
     Ok(())
 }

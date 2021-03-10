@@ -8,6 +8,13 @@ pub enum BoolOrDontCare {
     DontCare,
 }
 
+pub fn number(a: &Vec<BoolOrDontCare>) -> usize {
+    a.iter()
+        .enumerate()
+        .map(|(i, j)| if *j == BoolOrDontCare::One { 1 << i } else { 0 })
+        .sum()
+}
+
 pub fn diff(a: &Vec<BoolOrDontCare>, b: &Vec<BoolOrDontCare>) -> Vec<BoolOrDontCare> {
     a.iter()
         .zip(b)
@@ -22,7 +29,12 @@ pub fn diff(a: &Vec<BoolOrDontCare>, b: &Vec<BoolOrDontCare>) -> Vec<BoolOrDontC
 }
 
 pub fn count_diff(a: &Vec<BoolOrDontCare>, b: &Vec<BoolOrDontCare>) -> usize {
-    a.iter().zip(b).filter(|i| i.0 != i.1).count()
+    a.iter()
+        .zip(b)
+        .filter(|i| {
+            i.0 != i.1 && *i.0 != BoolOrDontCare::DontCare && *i.1 != BoolOrDontCare::DontCare
+        })
+        .count()
 }
 
 fn count_ones(a: &Vec<BoolOrDontCare>) -> usize {
