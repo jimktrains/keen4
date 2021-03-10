@@ -12,28 +12,9 @@ pub enum Expr {
     False,
 }
 
-// So, I can't just call a.cmp(b) == Ordering::Equal because I'm considering
-// Not(a) and a as Equal for the purposes of sorting. Is that a good idea?
-// Probably not :( I need to ensure they end up togher after a sort and
-// havn't thought enough about it otherwise.
 impl PartialEq for Expr {
     fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Expr::True, Expr::True) => true,
-            (Expr::False, Expr::False) => true,
-            (Expr::Var(a), Expr::Var(b)) => a == b,
-            (Expr::Not(box a), Expr::Not(box b)) => a == b,
-            (Expr::And(a), Expr::And(b)) | (Expr::Or(a), Expr::Or(b)) => {
-                for (i, j) in a.iter().zip(b.iter()) {
-                    let k = i.cmp(j);
-                    if k != Ordering::Equal {
-                        return false;
-                    }
-                }
-                true
-            }
-            _ => false,
-        }
+        self.cmp(other) == Ordering::Equal
     }
 }
 
@@ -50,8 +31,20 @@ impl Ord for Expr {
                 None => Ordering::Less,
             },
             (_, Expr::Var(_)) => Ordering::Greater,
-            (Expr::Not(box a), b) => a.cmp(b),
-            (a, Expr::Not(b)) => a.cmp(b),
+            (Expr::Not(box a), b) => {
+                let y = a.cmp(b);
+                if y == Ordering::Equal {
+                    return Ordering::Greater;
+                }
+                y
+            }
+            (a, Expr::Not(b)) => {
+                let y = a.cmp(b);
+                if y == Ordering::Equal {
+                    return Ordering::Less;
+                }
+                y
+            }
             (Expr::And(a), Expr::And(b)) | (Expr::Or(a), Expr::Or(b)) => {
                 for (i, j) in a.iter().zip(b.iter()) {
                     let k = i.cmp(j);
@@ -122,7 +115,8 @@ impl Expr {
                             return Box::new(Expr::False);
                         }
                         // Complement Law
-                        if *i == Expr::Not(prev).simplify() {
+                        let y = Expr::Not(prev).simplify();
+                        if *i == y {
                             return Box::new(Expr::False);
                         }
                         prev = i.clone();
@@ -133,6 +127,9 @@ impl Expr {
                 else {
                     return Box::new(Expr::True);
                 }
+                // if v.len() == 1 {
+                //     return v[0].clone();
+                // }
                 Box::new(Expr::And(v.to_vec()))
             }
             Expr::Or(v) => {
@@ -167,6 +164,9 @@ impl Expr {
                 else {
                     return Box::new(Expr::False);
                 }
+                // if v.len() == 1 {
+                //     return v[0].clone();
+                // }
                 Box::new(Expr::Or(v))
             }
         }

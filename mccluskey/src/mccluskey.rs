@@ -8,12 +8,29 @@ pub enum BoolOrDontCare {
     DontCare,
 }
 
+pub fn diff(a: &Vec<BoolOrDontCare>, b: &Vec<BoolOrDontCare>) -> Vec<BoolOrDontCare> {
+    a.iter()
+        .zip(b)
+        .map(|(i, j)| {
+            if i != j || *i == BoolOrDontCare::DontCare || *j == BoolOrDontCare::DontCare {
+                BoolOrDontCare::DontCare
+            } else {
+                i.clone()
+            }
+        })
+        .collect()
+}
+
+pub fn count_diff(a: &Vec<BoolOrDontCare>, b: &Vec<BoolOrDontCare>) -> usize {
+    a.iter().zip(b).filter(|i| i.0 != i.1).count()
+}
+
 fn count_ones(a: &Vec<BoolOrDontCare>) -> usize {
     a.iter().filter(|ai| **ai == BoolOrDontCare::One).count()
 }
 
 // I can get rid of the Result once I can ensure we have DNF.
-pub fn build_number(r: &Expr) -> Result<Vec<(usize, Vec<Vec<BoolOrDontCare>>)>, String> {
+pub fn minterms(r: &Expr) -> Result<Vec<(usize, Vec<Vec<BoolOrDontCare>>)>, String> {
     let terms = r.terms();
     let mut numbers = vec![];
 

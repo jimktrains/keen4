@@ -138,11 +138,11 @@ pub fn distribute(e: Box<Expr>) -> Box<Expr> {
             //        <=> A(1 + C + B) + BC
             //        <=> A(1) + BC
             //        <=> A + BC
-            (box Expr::Or(b, c), a) | (a, box Expr::Or(b, c)) => {
-                let a1 = a;
-                let a2 = a1.clone();
-                distribute(a1 + b) * distribute(a2 + c)
-            }
+            // (box Expr::And(b, c), a) | (a, box Expr::And(b, c)) => {
+            //     let a1 = a;
+            //     let a2 = a1.clone();
+            //     distribute(a1 + b) * distribute(a2 + c)
+            // }
             // Annulment Law
             (box Expr::True, _) => etrue(),
             // Identity Law
@@ -168,8 +168,8 @@ impl fmt::Display for Expr {
                         box Expr::Not(a) => format!("!{}", a),
                         box Expr::True => format!("{}", etrue()),
                         box Expr::False => format!("{}", efalse()),
-                        box Expr::And(a, b) => format!("({})", a * b),
-                        box Expr::Or(a, b) => format!("({})", a + b),
+                        box Expr::And(a, b) => format!("{}", a * b),
+                        box Expr::Or(a, b) => format!("{}", a + b),
                     }
                 ),
                 Expr::And(a, b) => match (a, b) {
