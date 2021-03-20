@@ -3,7 +3,6 @@
 pub mod ast;
 pub mod mccluskey;
 pub mod sast;
-use itertools::Itertools;
 
 use ast::{distribute, var};
 
@@ -38,16 +37,6 @@ fn main() -> Result<(), String> {
         }
     }
 
-    let t10 = &t[0].1[0];
-    let t11 = &t[0].1[1];
-
-    println!(
-        "{:?} {:?} diff {}",
-        t10,
-        t11,
-        mccluskey::count_diff(t10, t11)
-    );
-
     let mut it = t.iter();
     let first = it.next();
 
@@ -70,49 +59,38 @@ fn main() -> Result<(), String> {
         for (i, j, k) in res.iter() {
             println!("{:02},{:02}: {:?}", i, j, k);
         }
-        let mut primes: Vec<usize> = vec![];
-        for _ in 0..res.len() {
-            '_i: for i in 0..res.len() {
-                for k in primes.iter() {
-                    if i == *k {
-                        println!("    i == k");
-                        continue '_i;
-                    }
-                }
-                let mut imp1_count = 0;
-                let mut imp2_count = 0;
-                // Starting from 0 otherwise this won't pick up
-                // the final entry or if the conflict happens earlier.
-                // I'm sure there are better ways to handle this that aren't
-                // quadratic -- it's late and I'm not thinking clearly.
-                '_j: for j in 0..res.len() {
-                    println!("{} {}", i, j);
-                    if i == j {
-                        println!("    i == j");
-                        continue;
-                    }
-                    for k in primes.iter() {
-                        if res[i].0 == res[*k].0 || res[i].0 == res[j].1 {
-                            imp1_count += 1;
-                        }
-                    }
-                    if res[i].0 == res[j].0 || res[i].0 == res[j].1 {
-                        println!("    i.0");
-                        imp1_count += 1;
-                    }
-                    if res[i].1 == res[j].0 || res[i].1 == res[j].1 {
-                        println!("    i.1");
-                        imp2_count += 1;
-                    }
-                }
-                if imp1_count == 0 || imp2_count == 0 {
-                    primes.push(i);
-                }
+
+        let mut primes = vec![];
+        for (i, j, diff) in res.iter() {
+            let i_count = res
+                .iter()
+                .fold(0, |acc, (i2, j2, _)| acc + (i == i2 || i == j2) as i32);
+            let j_count = res
+                .iter()
+                .fold(0, |acc, (i2, j2, _)| acc + (j == i2 || j == j2) as i32);
+
+            if j_count == 1 || i_count == 1 {
+                primes.push((i, j, diff));
             }
         }
-        for i in primes {
-            println!("{} {:02},{:02}", i, res[i].0, res[i].1);
+        println!("Primes");
+        for (i, j, k) in primes.iter() {
+            println!("{:02},{:02}: {:?}", i, j, k);
         }
+
+        let mut res2 = vec![];
+        for (i, j, d) in res.iter() {
+            let count = primes.iter().fold(0, |accum, (pi, pj, _)| {
+                accum + (*pi == i || *pi == j || *pj == i || *pj == j) as i32
+            });
+            if count == 0 {
+                res2.push((i, j, d));
+            }
+        }
+        for (i, j, d) in res2.iter() {
+            println!("{:02},{:02}: {:?}", i, j, d);
+        }
+        // recurse on finding the primes of res2
     }
 
     Ok(())
